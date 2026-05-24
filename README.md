@@ -47,7 +47,7 @@ make app-logs
 브라우저에서 Swagger UI를 엽니다.
 
 ```text
-http://localhost:8080/swagger-ui.html
+http://localhost:8080/api/swagger-ui.html
 ```
 
 종료할 때는 아래 명령을 사용합니다.
@@ -68,41 +68,42 @@ Docker Compose는 프로젝트 루트의 `.env`를 자동으로 읽어 컨테이
 
 주요 환경변수:
 
-| Key | Description | Default |
-| --- | --- | --- |
-| `SPRING_PROFILES_ACTIVE` | Spring profile | `dev` |
-| `SERVER_PORT` | 애플리케이션 포트 | `8080` |
-| `DB_HOST` | MySQL host | `localhost` |
-| `DB_PORT` | MySQL port | `3306` |
-| `DB_NAME` | MySQL database | `groovo` |
-| `DB_USERNAME` | MySQL username | `groovo` |
-| `DB_PASSWORD` | MySQL password | `change-me` |
-| `MYSQL_ROOT_PASSWORD` | MySQL root password | `root` |
-| `JPA_DDL_AUTO` | Hibernate DDL mode | `update` |
-| `REDIS_HOST` | Redis host | `localhost` |
-| `REDIS_PORT` | Redis port | `6379` |
-| `REDIS_PASSWORD` | Redis password | empty |
-| `CACHE_TTL` | Redis cache TTL(ms) | `600000` |
-| `AWS_REGION` | AWS region | `ap-northeast-2` |
-| `AWS_S3_BUCKET` | S3 bucket name | empty |
-| `AWS_S3_ENDPOINT` | S3-compatible endpoint | empty |
-| `AWS_S3_PATH_STYLE_ACCESS_ENABLED` | Path-style S3 access | `false` |
-| `AWS_S3_ACCESS_KEY` | S3 access key | empty |
-| `AWS_S3_SECRET_KEY` | S3 secret key | empty |
-| `AWS_S3_PRESIGNED_URL_EXPIRATION` | Presigned URL 만료 시간 | `5m` |
+| Key                                | Description             | Default          |
+| ---------------------------------- | ----------------------- | ---------------- |
+| `SPRING_PROFILES_ACTIVE`           | Spring profile          | `dev`            |
+| `SERVER_PORT`                      | 애플리케이션 포트       | `8080`           |
+| `SERVER_SERVLET_CONTEXT_PATH`      | API 경로 prefix         | `/api`           |
+| `DB_HOST`                          | MySQL host              | `localhost`      |
+| `DB_PORT`                          | MySQL port              | `3306`           |
+| `DB_NAME`                          | MySQL database          | `groovo`         |
+| `DB_USERNAME`                      | MySQL username          | `groovo`         |
+| `DB_PASSWORD`                      | MySQL password          | `change-me`      |
+| `MYSQL_ROOT_PASSWORD`              | MySQL root password     | `root`           |
+| `JPA_DDL_AUTO`                     | Hibernate DDL mode      | `update`         |
+| `REDIS_HOST`                       | Redis host              | `localhost`      |
+| `REDIS_PORT`                       | Redis port              | `6379`           |
+| `REDIS_PASSWORD`                   | Redis password          | empty            |
+| `CACHE_TTL`                        | Redis cache TTL(ms)     | `600000`         |
+| `AWS_REGION`                       | AWS region              | `ap-northeast-2` |
+| `AWS_S3_BUCKET`                    | S3 bucket name          | empty            |
+| `AWS_S3_ENDPOINT`                  | S3-compatible endpoint  | empty            |
+| `AWS_S3_PATH_STYLE_ACCESS_ENABLED` | Path-style S3 access    | `false`          |
+| `AWS_S3_ACCESS_KEY`                | S3 access key           | empty            |
+| `AWS_S3_SECRET_KEY`                | S3 secret key           | empty            |
+| `AWS_S3_PRESIGNED_URL_EXPIRATION`  | Presigned URL 만료 시간 | `5m`             |
 
 실제 비밀번호와 AWS 키는 `.env.example`에 넣지 않습니다. `.env`는 Git에 커밋하지 않습니다.
 
 ## 4. Useful URLs
 
-애플리케이션 포트는 기본 `8080`입니다. `SERVER_PORT`를 바꾸면 아래 URL의 포트도 같이 바꿔서 사용합니다.
+애플리케이션 포트는 기본 `8080`, 경로 prefix는 기본 `/api`입니다. `SERVER_PORT`를 바꾸면 아래 URL도 같이 바꿔서 사용합니다.
 
-| Purpose | URL |
-| --- | --- |
-| Swagger UI | `http://localhost:8080/swagger-ui.html` |
-| OpenAPI JSON | `http://localhost:8080/api-docs` |
-| Actuator health | `http://localhost:8080/actuator/health` |
-| Simple health | `http://localhost:8080/health` |
+| Purpose         | URL                                         |
+| --------------- | ------------------------------------------- |
+| Swagger UI      | `http://localhost:8080/api/swagger-ui.html` |
+| OpenAPI JSON    | `http://localhost:8080/api/api-docs`        |
+| Actuator health | `http://localhost:8080/api/actuator/health` |
+| Simple health   | `http://localhost:8080/api/health`          |
 
 ## 5. Build And Test
 
@@ -184,13 +185,13 @@ PATCH  /api/videos/{videoId}
 DELETE /api/videos/{videoId}
 ```
 
-운영/문서/상태 확인용 endpoint는 `/api` prefix를 붙이지 않습니다.
+운영/문서/상태 확인용 endpoint도 전역 context path인 `/api` prefix 아래에 노출됩니다.
 
 ```text
-/health
-/actuator/health
-/api-docs
-/swagger-ui.html
+/api/health
+/api/actuator/health
+/api/api-docs
+/api/swagger-ui.html
 ```
 
 ### Naming
