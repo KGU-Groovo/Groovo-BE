@@ -3,7 +3,7 @@ APP_SERVICE := app
 MYSQL_SERVICE := mysql
 REDIS_SERVICE := redis
 
-.PHONY: all up build down re clean fclean restart logs app-logs db-logs redis-logs ps config health app-shell db-shell redis-cli
+.PHONY: all up build down re clean fclean restart logs app-logs db-logs redis-logs ps config health app-shell db-shell redis-cli seed
 
 all: up
 
@@ -56,3 +56,7 @@ db-shell:
 
 redis-cli:
 	$(COMPOSE) exec $(REDIS_SERVICE) redis-cli
+
+seed:
+	$(COMPOSE) exec -T $(MYSQL_SERVICE) sh -lc 'exec mysql -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' < scripts/seed_videos.sql
+	@echo "Seeded demo videos."
