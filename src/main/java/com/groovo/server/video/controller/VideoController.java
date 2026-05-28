@@ -1,7 +1,8 @@
-package com.groovo.server.video;
+package com.groovo.server.video.controller;
 
 import com.groovo.server.video.dto.VideoDetailResponse;
 import com.groovo.server.video.dto.VideoListResponse;
+import com.groovo.server.video.service.VideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

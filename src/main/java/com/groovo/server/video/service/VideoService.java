@@ -1,10 +1,12 @@
-package com.groovo.server.video;
+package com.groovo.server.video.service;
 
 import com.groovo.server.common.exception.BusinessException;
 import com.groovo.server.common.exception.ErrorCode;
+import com.groovo.server.video.domain.Video;
 import com.groovo.server.video.dto.VideoDetailResponse;
 import com.groovo.server.video.dto.VideoListResponse;
 import com.groovo.server.video.dto.VideoSummaryResponse;
+import com.groovo.server.video.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
