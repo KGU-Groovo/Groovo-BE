@@ -1,10 +1,11 @@
 package com.groovo.server.config;
 
 import com.groovo.server.common.security.JwtProperties;
+import com.groovo.server.session.config.SessionProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, SessionProperties.class})
 public class JwtConfig {
 }

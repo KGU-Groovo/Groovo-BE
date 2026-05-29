@@ -55,6 +55,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     ws-token-expiration: ${WS_TOKEN_EXPIRATION:30m}
+  session:
+    ws-url: ${SESSION_WS_URL:wss://ai.groovo.io/ws/analyze}
 
 management:
   endpoints:
