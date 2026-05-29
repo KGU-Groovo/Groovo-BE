@@ -19,6 +19,10 @@ public class JwtProvider {
 	}
 
 	public String create(String subject, Map<String, Object> claims, Duration ttl) {
+		if (ttl == null || ttl.isZero() || ttl.isNegative()) {
+			throw new IllegalArgumentException("ttl must be positive");
+		}
+
 		Instant now = Instant.now();
 		return Jwts.builder()
 			.claims(claims)
