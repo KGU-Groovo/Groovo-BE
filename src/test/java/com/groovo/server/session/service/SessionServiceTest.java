@@ -125,12 +125,13 @@ class SessionServiceTest {
 	}
 
 	@Test
-	void create_throwsIllegalStateException_whenVideoKeypointPathMissing() {
+	void create_throwsInternalServerError_whenVideoKeypointPathMissing() {
 		Video video = videoWithAnalysisMetadata(null, 30.0);
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
 		assertThatThrownBy(() -> sessionService.create(101L, 42L))
-			.isInstanceOf(IllegalStateException.class)
+			.isInstanceOfSatisfying(BusinessException.class, exception ->
+				assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
 			.hasMessageContaining("keypointPath");
 
 		verify(jwtProvider, never()).create(any(), any(), any());
@@ -139,12 +140,13 @@ class SessionServiceTest {
 	}
 
 	@Test
-	void create_throwsIllegalStateException_whenVideoKeypointPathBlank() {
+	void create_throwsInternalServerError_whenVideoKeypointPathBlank() {
 		Video video = videoWithAnalysisMetadata(" ", 30.0);
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
 		assertThatThrownBy(() -> sessionService.create(101L, 42L))
-			.isInstanceOf(IllegalStateException.class)
+			.isInstanceOfSatisfying(BusinessException.class, exception ->
+				assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
 			.hasMessageContaining("keypointPath");
 
 		verify(jwtProvider, never()).create(any(), any(), any());
@@ -153,12 +155,13 @@ class SessionServiceTest {
 	}
 
 	@Test
-	void create_throwsIllegalStateException_whenVideoFpsMissing() {
+	void create_throwsInternalServerError_whenVideoFpsMissing() {
 		Video video = videoWithAnalysisMetadata("keypoints/video_1.npy", null);
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
 		assertThatThrownBy(() -> sessionService.create(101L, 42L))
-			.isInstanceOf(IllegalStateException.class)
+			.isInstanceOfSatisfying(BusinessException.class, exception ->
+				assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
 			.hasMessageContaining("fps");
 
 		verify(jwtProvider, never()).create(any(), any(), any());

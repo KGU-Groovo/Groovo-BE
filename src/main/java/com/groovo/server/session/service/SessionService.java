@@ -68,10 +68,16 @@ public class SessionService {
 
 	private void validateAnalysisMetadata(Video video) {
 		if (video.getKeypointPath() == null || video.getKeypointPath().isBlank()) {
-			throw new IllegalStateException("Video analysis metadata is missing: keypointPath");
+			throw new BusinessException(
+				ErrorCode.INTERNAL_SERVER_ERROR,
+				"Video analysis metadata is incomplete: keypointPath is missing"
+			);
 		}
 		if (video.getFps() == null) {
-			throw new IllegalStateException("Video analysis metadata is missing: fps");
+			throw new BusinessException(
+				ErrorCode.INTERNAL_SERVER_ERROR,
+				"Video analysis metadata is incomplete: fps is missing"
+			);
 		}
 	}
 }

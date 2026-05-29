@@ -1,7 +1,9 @@
 package com.groovo.server.session.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -147,5 +149,27 @@ class SessionControllerTest {
 				.content("{\"video_id\": 999999}"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("VIDEO_NOT_FOUND"));
+	}
+
+	@Test
+	void createSession_returns500_whenVideoKeypointPathMissing() throws Exception {
+		Video video = videoRepository.save(Video.builder()
+			.title("Incomplete analysis video")
+			.videoUrl("https://cdn.groovo.io/video/incomplete/index.m3u8")
+			.keypointPath(null)
+			.fps(30.0)
+			.durationMs(180000)
+			.thumbnailUrl("https://cdn.groovo.io/thumb/incomplete.jpg")
+			.build());
+
+		mockMvc.perform(post("/v1/sessions")
+				.header("X-User-Id", "101")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"video_id\": " + video.getId() + "}"))
+			.andExpect(status().isInternalServerError())
+			.andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"));
+
+		assertThat(sessionRepository.findAll()).isEmpty();
+		verify(sessionRedisStore, never()).save(any(), any(), any());
 	}
 }
