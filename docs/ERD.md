@@ -12,14 +12,18 @@
     
     **users — 사용자**
     
-    Groovo에 가입한 사용자 정보를 저장해. 로그인 시 `email`로 사용자를 찾고, `password_hash`로 비밀번호를 검증한다. 비밀번호 원문은 절대 저장하지 않고 해시된 값만 저장하는 게 보안 원칙임
+    Groovo에 가입한 사용자 정보를 저장해. 자체 비밀번호 대신 소셜 로그인(OAuth)을 쓰기 때문에, `provider`(어떤 소셜인지)와 `provider_id`(그 소셜에서의 고유 ID) 조합으로 사용자를 식별한다. 같은 소셜 계정으로 중복 가입하지 못하도록 `(provider, provider_id)`는 중복 불가이고, `email`도 중복 불가라 한 이메일은 한 계정에만 쓸 수 있어. 비밀번호 원문이나 해시는 저장하지 않는다 — 인증은 소셜 제공자에게 맡기는 구조임
     
     | 필드 | 설명 |
     | --- | --- |
     | id | 사용자를 구분하는 고유 번호 (PK) |
-    | email | 로그인에 사용하는 이메일, 중복 불가 |
-    | password_hash | 암호화된 비밀번호 |
+    | email | 사용자 이메일, 중복 불가 |
     | nickname | 앱에서 표시되는 이름 |
+    | profile_image_url | 프로필 이미지 주소 (없을 수 있음) |
+    | provider | 소셜 로그인 제공자 (KAKAO / GOOGLE / APPLE) |
+    | provider_id | 소셜 제공자가 발급한 사용자 고유 ID |
+    | role | 권한 등급 (USER: 일반 사용자 / ADMIN: 관리자) |
+    | status | 계정 상태 (ACTIVE: 활성 / WITHDRAWN: 탈퇴) |
     | created_at / updated_at | 가입일 / 마지막 정보 수정일 |
     
     ---
