@@ -35,6 +35,7 @@ public class SessionService {
 	public SessionCreateResponse create(Long userId, Long videoId) {
 		Video video = videoRepository.findById(videoId)
 			.orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
+		validateAnalysisMetadata(video);
 
 		String sessionId = UUID.randomUUID().toString();
 		Duration ttl = jwtProperties.wsTokenExpiration();
@@ -63,5 +64,14 @@ public class SessionService {
 		sessionRedisStore.save(sessionId, fields, ttl);
 
 		return new SessionCreateResponse(sessionId, wsToken, sessionProperties.wsUrl(), ttl.toSeconds());
+	}
+
+	private void validateAnalysisMetadata(Video video) {
+		if (video.getKeypointPath() == null || video.getKeypointPath().isBlank()) {
+			throw new IllegalStateException("Video analysis metadata is missing: keypointPath");
+		}
+		if (video.getFps() == null) {
+			throw new IllegalStateException("Video analysis metadata is missing: fps");
+		}
 	}
 }

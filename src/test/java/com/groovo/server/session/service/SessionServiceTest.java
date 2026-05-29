@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -108,6 +109,74 @@ class SessionServiceTest {
 			.containsEntry("user_id", "101")
 			.containsEntry("video_id", "42")
 			.containsEntry("keypoint_path", "keypoints/video_1.npy")
+			.containsEntry("fps", "30.0")
 			.containsEntry("status", "active");
+		assertThat(fieldsCaptor.getValue().get("started_at"))
+			.isNotBlank()
+			.containsOnlyDigits();
+
+		ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map<String, Object>> claimsCaptor = ArgumentCaptor.forClass(Map.class);
+		verify(jwtProvider).create(subjectCaptor.capture(), claimsCaptor.capture(), eq(Duration.ofMinutes(30)));
+		assertThat(subjectCaptor.getValue()).isEqualTo(response.sessionId());
+		assertThat(claimsCaptor.getValue())
+			.containsEntry("userId", 101L)
+			.containsEntry("videoId", 42L);
+	}
+
+	@Test
+	void create_throwsIllegalStateException_whenVideoKeypointPathMissing() {
+		Video video = videoWithAnalysisMetadata(null, 30.0);
+		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+
+		assertThatThrownBy(() -> sessionService.create(101L, 42L))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("keypointPath");
+
+		verify(jwtProvider, never()).create(any(), any(), any());
+		verify(sessionRepository, never()).save(any());
+		verify(sessionRedisStore, never()).save(any(), any(), any());
+	}
+
+	@Test
+	void create_throwsIllegalStateException_whenVideoKeypointPathBlank() {
+		Video video = videoWithAnalysisMetadata(" ", 30.0);
+		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+
+		assertThatThrownBy(() -> sessionService.create(101L, 42L))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("keypointPath");
+
+		verify(jwtProvider, never()).create(any(), any(), any());
+		verify(sessionRepository, never()).save(any());
+		verify(sessionRedisStore, never()).save(any(), any(), any());
+	}
+
+	@Test
+	void create_throwsIllegalStateException_whenVideoFpsMissing() {
+		Video video = videoWithAnalysisMetadata("keypoints/video_1.npy", null);
+		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+
+		assertThatThrownBy(() -> sessionService.create(101L, 42L))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("fps");
+
+		verify(jwtProvider, never()).create(any(), any(), any());
+		verify(sessionRepository, never()).save(any());
+		verify(sessionRedisStore, never()).save(any(), any(), any());
+	}
+
+	private Video videoWithAnalysisMetadata(String keypointPath, Double fps) {
+		Video video = Video.builder()
+			.title("Video 1")
+			.description("description")
+			.videoUrl("https://cdn.test/video_1.mp4")
+			.keypointPath(keypointPath)
+			.fps(fps)
+			.durationMs(120_000)
+			.thumbnailUrl("https://cdn.test/video_1.jpg")
+			.build();
+		ReflectionTestUtils.setField(video, "id", 42L);
+		return video;
 	}
 }

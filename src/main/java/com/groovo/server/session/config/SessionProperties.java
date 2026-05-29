@@ -6,4 +6,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record SessionProperties(
 	String wsUrl
 ) {
+	public SessionProperties {
+		if (wsUrl == null || wsUrl.isBlank()) {
+			throw new IllegalArgumentException("app.session.ws-url must not be blank");
+		}
+		if (!wsUrl.startsWith("ws://") && !wsUrl.startsWith("wss://")) {
+			throw new IllegalArgumentException("app.session.ws-url must start with ws:// or wss://");
+		}
+	}
 }
