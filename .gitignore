@@ -65,3 +65,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Local dev specs (superpowers) — kept local, not committed
+docs/superpowers/
