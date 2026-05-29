@@ -51,6 +51,11 @@ aws:
     secret-key: ${AWS_S3_SECRET_KEY:}
     presigned-url-expiration: ${AWS_S3_PRESIGNED_URL_EXPIRATION:5m}
 
+app:
+  jwt:
+    secret: ${JWT_SECRET:}
+    ws-token-expiration: ${WS_TOKEN_EXPIRATION:30m}
+
 management:
   endpoints:
     web:
