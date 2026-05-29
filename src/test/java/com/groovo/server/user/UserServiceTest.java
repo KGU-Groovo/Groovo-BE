@@ -8,7 +8,7 @@ import com.groovo.server.common.exception.BusinessException;
 import com.groovo.server.common.exception.ErrorCode;
 import com.groovo.server.user.domain.Provider;
 import com.groovo.server.user.domain.User;
-import com.groovo.server.user.dto.UserResponse;
+import com.groovo.server.user.dto.UserProfileResponse;
 import com.groovo.server.user.repository.UserRepository;
 import com.groovo.server.user.service.UserService;
 import java.util.Optional;
@@ -38,21 +38,20 @@ class UserServiceTest {
 	}
 
 	@Test
-	void getUser_returnsResponse_whenExists() {
+	void getUserProfile_returnsPublicProfile_whenExists() {
 		when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser(1L)));
 
-		UserResponse response = userService.getUser(1L);
+		UserProfileResponse response = userService.getUserProfile(1L);
 
-		assertThat(response.email()).isEqualTo("user1@example.com");
 		assertThat(response.nickname()).isEqualTo("댄서1");
-		assertThat(response.provider()).isEqualTo(Provider.KAKAO);
+		assertThat(response.profileImageUrl()).isEqualTo("https://cdn.groovo.io/profile/1.jpg");
 	}
 
 	@Test
-	void getUser_throwsUserNotFound_whenMissing() {
+	void getUserProfile_throwsUserNotFound_whenMissing() {
 		when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> userService.getUser(999L))
+		assertThatThrownBy(() -> userService.getUserProfile(999L))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(ex -> assertThat(((BusinessException) ex).errorCode())
 				.isEqualTo(ErrorCode.USER_NOT_FOUND));

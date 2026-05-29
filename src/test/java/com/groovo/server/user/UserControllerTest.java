@@ -42,22 +42,23 @@ class UserControllerTest {
 	}
 
 	@Test
-	void getUser_returnsProfileWithoutProviderId() throws Exception {
+	void getUserProfile_returnsPublicFieldsOnly() throws Exception {
 		mockMvc.perform(get("/v1/users/{userId}", userId))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data.user_id").value(userId))
-			.andExpect(jsonPath("$.data.email").value("dancer@example.com"))
 			.andExpect(jsonPath("$.data.nickname").value("댄서A"))
-			.andExpect(jsonPath("$.data.provider").value("KAKAO"))
-			.andExpect(jsonPath("$.data.role").value("USER"))
-			.andExpect(jsonPath("$.data.status").value("ACTIVE"))
-			.andExpect(jsonPath("$.data.created_at").exists())
-			.andExpect(jsonPath("$.data.provider_id").doesNotExist());
+			.andExpect(jsonPath("$.data.profile_image_url").value("https://cdn.groovo.io/profile/1.jpg"))
+			.andExpect(jsonPath("$.data.email").doesNotExist())
+			.andExpect(jsonPath("$.data.provider").doesNotExist())
+			.andExpect(jsonPath("$.data.provider_id").doesNotExist())
+			.andExpect(jsonPath("$.data.role").doesNotExist())
+			.andExpect(jsonPath("$.data.status").doesNotExist())
+			.andExpect(jsonPath("$.data.created_at").doesNotExist());
 	}
 
 	@Test
-	void getUser_returns404_whenMissing() throws Exception {
+	void getUserProfile_returns404_whenMissing() throws Exception {
 		mockMvc.perform(get("/v1/users/{userId}", 999999))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.success").value(false))
