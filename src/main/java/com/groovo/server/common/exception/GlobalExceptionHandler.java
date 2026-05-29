@@ -4,6 +4,7 @@ import com.groovo.server.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -44,6 +45,13 @@ public class GlobalExceptionHandler {
 			.map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
 			.collect(Collectors.joining(", "));
 		return invalidInput(message);
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
+		HttpMessageNotReadableException exception
+	) {
+		return invalidInput(ErrorCode.INVALID_INPUT_VALUE.message());
 	}
 
 	@ExceptionHandler(AuthenticationException.class)
