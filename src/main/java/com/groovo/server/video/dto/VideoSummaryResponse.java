@@ -1,6 +1,6 @@
 package com.groovo.server.video.dto;
 
-import com.groovo.server.video.Video;
+import com.groovo.server.video.domain.Video;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
 

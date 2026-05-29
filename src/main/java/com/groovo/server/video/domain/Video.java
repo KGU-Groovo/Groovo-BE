@@ -1,4 +1,4 @@
-package com.groovo.server.video;
+package com.groovo.server.video.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

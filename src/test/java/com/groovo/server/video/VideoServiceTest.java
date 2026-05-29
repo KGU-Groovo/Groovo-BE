@@ -6,8 +6,11 @@ import static org.mockito.Mockito.when;
 
 import com.groovo.server.common.exception.BusinessException;
 import com.groovo.server.common.exception.ErrorCode;
+import com.groovo.server.video.domain.Video;
 import com.groovo.server.video.dto.VideoDetailResponse;
 import com.groovo.server.video.dto.VideoListResponse;
+import com.groovo.server.video.repository.VideoRepository;
+import com.groovo.server.video.service.VideoService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
