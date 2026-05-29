@@ -21,10 +21,3 @@ logging:
   level:
     root: WARN
     com.groovo.server: INFO
-
-app:
-  jwt:
-    secret: test-secret-key-for-jwt-signing-0123456789
-    ws-token-expiration: 30m
-  session:
-    ws-url: wss://test.groovo.io/ws/analyze
