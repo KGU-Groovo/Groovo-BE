@@ -39,17 +39,22 @@ public class User {
 	@Column(nullable = false)
 	private String email;
 
+	// 이메일 가입 시에만 채워지는 비밀번호 해시(BCrypt 등). 소셜 로그인 사용자는 null.
+	@Column
+	private String password;
+
 	@Column(nullable = false)
 	private String nickname;
 
 	@Column(name = "profile_image_url")
 	private String profileImageUrl;
 
+	// 소셜 로그인 사용자만 채워짐. 이메일 가입 사용자는 null.
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
+	@Column
 	private Provider provider;
 
-	@Column(name = "provider_id", nullable = false)
+	@Column(name = "provider_id")
 	private String providerId;
 
 	@Enumerated(EnumType.STRING)
@@ -71,6 +76,7 @@ public class User {
 	@Builder
 	private User(
 		String email,
+		String password,
 		String nickname,
 		String profileImageUrl,
 		Provider provider,
@@ -79,6 +85,7 @@ public class User {
 		UserStatus status
 	) {
 		this.email = email;
+		this.password = password;
 		this.nickname = nickname;
 		this.profileImageUrl = profileImageUrl;
 		this.provider = provider;

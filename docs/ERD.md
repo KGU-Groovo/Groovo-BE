@@ -12,16 +12,17 @@
     
     **users — 사용자**
     
-    Groovo에 가입한 사용자 정보를 저장해. 자체 비밀번호 대신 소셜 로그인(OAuth)을 쓰기 때문에, `provider`(어떤 소셜인지)와 `provider_id`(그 소셜에서의 고유 ID) 조합으로 사용자를 식별한다. 같은 소셜 계정으로 중복 가입하지 못하도록 `(provider, provider_id)`는 중복 불가이고, `email`도 중복 불가라 한 이메일은 한 계정에만 쓸 수 있어. 비밀번호 원문이나 해시는 저장하지 않는다 — 인증은 소셜 제공자에게 맡기는 구조임
+    Groovo에 가입한 사용자 정보를 저장해. 로그인 방식은 두 가지를 지원한다 — ① 이메일 + 비밀번호 기반의 자체 로그인, ② 소셜 로그인(OAuth). 소셜 로그인 사용자는 `provider`(어떤 소셜인지)와 `provider_id`(그 소셜에서의 고유 ID) 조합으로 식별하고, 이메일 가입 사용자는 `email`과 `password`(해시값)로 인증한다. 같은 소셜 계정으로 중복 가입하지 못하도록 `(provider, provider_id)`는 중복 불가이고, `email`도 중복 불가라 한 이메일은 한 계정에만 쓸 수 있어. 가입 방식에 따라 채워지는 필드가 다르기 때문에, 이메일 가입 사용자는 `provider`/`provider_id`가 비어 있고 소셜 로그인 사용자는 `password`가 비어 있다. 비밀번호는 절대 원문으로 저장하지 않고 단방향 해시(BCrypt 등)로만 저장한다.
     
     | 필드 | 설명 |
     | --- | --- |
     | id | 사용자를 구분하는 고유 번호 (PK) |
-    | email | 사용자 이메일, 중복 불가 |
+    | email | 사용자 이메일, 중복 불가 (로그인 ID로 사용) |
+    | password | 비밀번호 해시값 (BCrypt 등). 이메일 가입 시에만 채워지고, 소셜 로그인 사용자는 비어 있음 |
     | nickname | 앱에서 표시되는 이름 |
     | profile_image_url | 프로필 이미지 주소 (없을 수 있음) |
-    | provider | 소셜 로그인 제공자 (KAKAO / GOOGLE / APPLE) |
-    | provider_id | 소셜 제공자가 발급한 사용자 고유 ID |
+    | provider | 소셜 로그인 제공자 (KAKAO / GOOGLE / APPLE). 이메일 가입 시 비어 있음 |
+    | provider_id | 소셜 제공자가 발급한 사용자 고유 ID. 이메일 가입 시 비어 있음 |
     | role | 권한 등급 (USER: 일반 사용자 / ADMIN: 관리자) |
     | status | 계정 상태 (ACTIVE: 활성 / WITHDRAWN: 탈퇴) |
     | created_at / updated_at | 가입일 / 마지막 정보 수정일 |
