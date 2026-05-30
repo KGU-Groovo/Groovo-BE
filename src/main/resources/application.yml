@@ -75,4 +75,4 @@ logging:
     com.groovo.server: INFO
     org.hibernate.SQL: INFO
 jwt:
-  secret: groovo-secret-key-must-be-at-least-32-characters-long
+  secret: ${JWT_SECRET:groovo-secret-key-must-be-at-least-32-characters-long}
