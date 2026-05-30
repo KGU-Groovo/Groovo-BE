@@ -20,7 +20,6 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-    private final org.springframework.data.redis.core.RedisTemplate<String, String> redisTemplate;
 
     public SignupResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -55,11 +54,5 @@ public class AuthService {
     }
 
     public void logout(String token) {
-        redisTemplate.opsForValue().set(
-                "blacklist:" + token,
-                "logout",
-                1800,
-                java.util.concurrent.TimeUnit.SECONDS
-        );
     }
 }
