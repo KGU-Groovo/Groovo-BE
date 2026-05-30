@@ -7,9 +7,9 @@ spring:
     time-zone: Asia/Seoul
     default-property-inclusion: non_null
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:groovo}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: ${DB_USERNAME:groovo}
-    password: ${DB_PASSWORD:change-me}
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
@@ -74,5 +74,6 @@ logging:
     root: INFO
     com.groovo.server: INFO
     org.hibernate.SQL: INFO
+
 jwt:
-  secret: ${JWT_SECRET:groovo-secret-key-must-be-at-least-32-characters-long}
+  secret: ${JWT_SECRET}

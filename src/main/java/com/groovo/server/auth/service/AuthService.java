@@ -23,7 +23,10 @@ public class AuthService {
 
     public SignupResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException(ErrorCode.DUPLICATED_VALUE);
+            throw new BusinessException(ErrorCode.DUPLICATED_EMAIL);
+        }
+        if (userRepository.existsByNickname(request.getNickname())) {
+            throw new BusinessException(ErrorCode.DUPLICATED_NICKNAME);
         }
         User user = User.builder()
                 .email(request.getEmail())

@@ -12,7 +12,7 @@ import java.util.Date;
 public class JwtProvider {
 
     private final Key key;
-    private final long expiresIn = 86400;
+    private final long expiresIn = 1800;
 
     public JwtProvider(@Value("${jwt.secret}") String secret) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
