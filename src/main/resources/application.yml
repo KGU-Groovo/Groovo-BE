@@ -62,6 +62,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     ws-token-expiration: ${WS_TOKEN_EXPIRATION:30m}
+    access-token-expiration: ${ACCESS_TOKEN_EXPIRATION:30m}
   session:
     ws-url: ${SESSION_WS_URL:wss://ai.groovo.io/ws/analyze}
 
@@ -81,6 +82,3 @@ logging:
     root: INFO
     com.groovo.server: INFO
     org.hibernate.SQL: INFO
-
-jwt:
-  secret: ${JWT_SECRET}

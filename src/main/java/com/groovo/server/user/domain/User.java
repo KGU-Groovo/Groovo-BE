@@ -24,6 +24,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 	name = "users",
 	uniqueConstraints = {
 		@UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+		@UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
 		@UniqueConstraint(name = "uk_users_provider", columnNames = {"provider", "provider_id"})
 	}
 )

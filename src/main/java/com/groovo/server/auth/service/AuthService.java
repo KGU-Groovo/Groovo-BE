@@ -1,14 +1,14 @@
 package com.groovo.server.auth.service;
 
-import com.groovo.server.auth.domain.User;
 import com.groovo.server.auth.dto.LoginRequest;
 import com.groovo.server.auth.dto.SignupRequest;
 import com.groovo.server.auth.dto.SignupResponse;
 import com.groovo.server.auth.dto.TokenResponse;
-import com.groovo.server.auth.repository.UserRepository;
 import com.groovo.server.common.exception.BusinessException;
 import com.groovo.server.common.exception.ErrorCode;
-import com.groovo.server.config.JwtProvider;
+import com.groovo.server.common.jwt.JwtProvider;
+import com.groovo.server.user.domain.User;
+import com.groovo.server.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

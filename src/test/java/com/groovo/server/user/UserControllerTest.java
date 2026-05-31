@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.groovo.server.common.jwt.JwtProvider;
 import com.groovo.server.user.domain.Provider;
 import com.groovo.server.user.domain.User;
 import com.groovo.server.user.repository.UserRepository;
@@ -24,9 +25,13 @@ class UserControllerTest {
 	private MockMvc mockMvc;
 
 	@Autowired
+	private JwtProvider jwtProvider;
+
+	@Autowired
 	private UserRepository userRepository;
 
 	private Long userId;
+	private String accessToken;
 
 	@BeforeEach
 	void setUp() {
@@ -39,11 +44,13 @@ class UserControllerTest {
 			.providerId("kakao-1")
 			.build());
 		userId = user.getId();
+		accessToken = jwtProvider.generateToken(userId);
 	}
 
 	@Test
 	void getUserProfile_returnsPublicFieldsOnly() throws Exception {
-		mockMvc.perform(get("/v1/users/{userId}", userId))
+		mockMvc.perform(get("/v1/users/{userId}", userId)
+				.header("Authorization", bearerToken()))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data.user_id").value(userId))
@@ -59,9 +66,21 @@ class UserControllerTest {
 
 	@Test
 	void getUserProfile_returns404_whenMissing() throws Exception {
-		mockMvc.perform(get("/v1/users/{userId}", 999999))
+		mockMvc.perform(get("/v1/users/{userId}", 999999)
+				.header("Authorization", bearerToken()))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.success").value(false))
 			.andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+	}
+
+	@Test
+	void getUserProfile_returns401_whenAuthorizationHeaderMissing() throws Exception {
+		mockMvc.perform(get("/v1/users/{userId}", userId))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+	}
+
+	private String bearerToken() {
+		return "Bearer " + accessToken;
 	}
 }

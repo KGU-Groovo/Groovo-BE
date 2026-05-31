@@ -10,14 +10,16 @@ import static org.mockito.Mockito.when;
 
 import com.groovo.server.common.exception.BusinessException;
 import com.groovo.server.common.exception.ErrorCode;
-import com.groovo.server.common.security.JwtProperties;
-import com.groovo.server.common.security.JwtProvider;
+import com.groovo.server.common.jwt.JwtProperties;
+import com.groovo.server.common.jwt.JwtProvider;
 import com.groovo.server.session.config.SessionProperties;
 import com.groovo.server.session.domain.Session;
 import com.groovo.server.session.domain.SessionStatus;
 import com.groovo.server.session.dto.SessionCreateResponse;
 import com.groovo.server.session.repository.SessionRedisStore;
 import com.groovo.server.session.repository.SessionRepository;
+import com.groovo.server.user.domain.User;
+import com.groovo.server.user.repository.UserRepository;
 import com.groovo.server.video.domain.Video;
 import com.groovo.server.video.repository.VideoRepository;
 import java.time.Duration;
@@ -36,6 +38,9 @@ class SessionServiceTest {
 	private static final String SECRET = "test-secret-key-for-jwt-signing-0123456789";
 
 	@Mock
+	private UserRepository userRepository;
+
+	@Mock
 	private VideoRepository videoRepository;
 
 	@Mock
@@ -52,17 +57,19 @@ class SessionServiceTest {
 	@BeforeEach
 	void setUp() {
 		sessionService = new SessionService(
+			userRepository,
 			videoRepository,
 			sessionRepository,
 			sessionRedisStore,
 			jwtProvider,
-			new JwtProperties(SECRET, Duration.ofMinutes(30)),
+			new JwtProperties(SECRET, Duration.ofMinutes(30), Duration.ofMinutes(30)),
 			new SessionProperties("wss://ai.test/ws/analyze")
 		);
 	}
 
 	@Test
 	void create_throwsVideoNotFound_whenVideoMissing() {
+		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
 		when(videoRepository.findById(999L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> sessionService.create(101L, 999L))
@@ -73,6 +80,7 @@ class SessionServiceTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	void create_savesSessionAndRedis_andReturnsResponse() {
+		User user = user(101L);
 		Video video = Video.builder()
 			.title("Video 1")
 			.description("description")
@@ -83,6 +91,7 @@ class SessionServiceTest {
 			.thumbnailUrl("https://cdn.test/video_1.jpg")
 			.build();
 		ReflectionTestUtils.setField(video, "id", 42L);
+		when(userRepository.findById(101L)).thenReturn(Optional.of(user));
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 		when(jwtProvider.create(any(String.class), any(Map.class), eq(Duration.ofMinutes(30))))
 			.thenReturn("ws-token-value");
@@ -98,7 +107,7 @@ class SessionServiceTest {
 		verify(sessionRepository).save(sessionCaptor.capture());
 		Session savedSession = sessionCaptor.getValue();
 		assertThat(savedSession.getId()).isEqualTo(response.sessionId());
-		assertThat(savedSession.getUserId()).isEqualTo(101L);
+		assertThat(savedSession.getUser()).isSameAs(user);
 		assertThat(savedSession.getVideo()).isSameAs(video);
 		assertThat(savedSession.getStatus()).isEqualTo(SessionStatus.ACTIVE);
 		assertThat(savedSession.getStartedAt()).isNotNull();
@@ -127,6 +136,7 @@ class SessionServiceTest {
 	@Test
 	void create_throwsInternalServerError_whenVideoKeypointPathMissing() {
 		Video video = videoWithAnalysisMetadata(null, 30.0);
+		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
 		assertThatThrownBy(() -> sessionService.create(101L, 42L))
@@ -142,6 +152,7 @@ class SessionServiceTest {
 	@Test
 	void create_throwsInternalServerError_whenVideoKeypointPathBlank() {
 		Video video = videoWithAnalysisMetadata(" ", 30.0);
+		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
 		assertThatThrownBy(() -> sessionService.create(101L, 42L))
@@ -157,6 +168,7 @@ class SessionServiceTest {
 	@Test
 	void create_throwsInternalServerError_whenVideoFpsMissing() {
 		Video video = videoWithAnalysisMetadata("keypoints/video_1.npy", null);
+		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
 		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
 		assertThatThrownBy(() -> sessionService.create(101L, 42L))
@@ -181,5 +193,15 @@ class SessionServiceTest {
 			.build();
 		ReflectionTestUtils.setField(video, "id", 42L);
 		return video;
+	}
+
+	private User user(Long id) {
+		User user = User.builder()
+			.email("user" + id + "@test.com")
+			.password("encoded-password")
+			.nickname("user" + id)
+			.build();
+		ReflectionTestUtils.setField(user, "id", id);
+		return user;
 	}
 }

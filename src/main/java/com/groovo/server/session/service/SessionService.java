@@ -2,14 +2,16 @@ package com.groovo.server.session.service;
 
 import com.groovo.server.common.exception.BusinessException;
 import com.groovo.server.common.exception.ErrorCode;
-import com.groovo.server.common.security.JwtProperties;
-import com.groovo.server.common.security.JwtProvider;
+import com.groovo.server.common.jwt.JwtProperties;
+import com.groovo.server.common.jwt.JwtProvider;
 import com.groovo.server.session.config.SessionProperties;
 import com.groovo.server.session.domain.Session;
 import com.groovo.server.session.domain.SessionStatus;
 import com.groovo.server.session.dto.SessionCreateResponse;
 import com.groovo.server.session.repository.SessionRedisStore;
 import com.groovo.server.session.repository.SessionRepository;
+import com.groovo.server.user.domain.User;
+import com.groovo.server.user.repository.UserRepository;
 import com.groovo.server.video.domain.Video;
 import com.groovo.server.video.repository.VideoRepository;
 import java.time.Duration;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class SessionService {
+	private final UserRepository userRepository;
 	private final VideoRepository videoRepository;
 	private final SessionRepository sessionRepository;
 	private final SessionRedisStore sessionRedisStore;
@@ -33,6 +36,11 @@ public class SessionService {
 	private final SessionProperties sessionProperties;
 
 	public SessionCreateResponse create(Long userId, Long videoId) {
+		if (userId == null) {
+			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+		}
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 		Video video = videoRepository.findById(videoId)
 			.orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
 		validateAnalysisMetadata(video);
@@ -48,14 +56,14 @@ public class SessionService {
 		Instant now = Instant.now();
 		sessionRepository.save(Session.builder()
 			.id(sessionId)
-			.userId(userId)
+			.user(user)
 			.video(video)
 			.status(SessionStatus.ACTIVE)
 			.startedAt(now)
 			.build());
 
 		Map<String, String> fields = new LinkedHashMap<>();
-		fields.put("user_id", String.valueOf(userId));
+		fields.put("user_id", String.valueOf(user.getId()));
 		fields.put("video_id", String.valueOf(video.getId()));
 		fields.put("keypoint_path", video.getKeypointPath());
 		fields.put("fps", String.valueOf(video.getFps()));

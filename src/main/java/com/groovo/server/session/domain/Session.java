@@ -1,5 +1,6 @@
 package com.groovo.server.session.domain;
 
+import com.groovo.server.user.domain.User;
 import com.groovo.server.video.domain.Video;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,9 +25,9 @@ public class Session {
 	@Id
 	private String id;
 
-	// TODO: users 엔티티 생기면 @ManyToOne FK로 전환
-	@Column(name = "user_id", nullable = false)
-	private Long userId;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "user_id", nullable = false)
+	private User user;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "video_id", nullable = false)
@@ -43,9 +44,9 @@ public class Session {
 	private Instant finishedAt;
 
 	@Builder
-	private Session(String id, Long userId, Video video, SessionStatus status, Instant startedAt) {
+	private Session(String id, User user, Video video, SessionStatus status, Instant startedAt) {
 		this.id = id;
-		this.userId = userId;
+		this.user = user;
 		this.video = video;
 		this.status = status;
 		this.startedAt = startedAt;

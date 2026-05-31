@@ -1,5 +1,7 @@
-package com.groovo.server.common.security;
+package com.groovo.server.common.jwt;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -13,9 +15,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtProvider {
 	private final SecretKey key;
+	private final JwtProperties properties;
 
 	public JwtProvider(JwtProperties properties) {
 		this.key = Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
+		this.properties = properties;
+	}
+
+	public String generateToken(Long userId) {
+		return create(String.valueOf(userId), Map.of(), properties.accessTokenExpiration());
 	}
 
 	public String create(String subject, Map<String, Object> claims, Duration ttl) {
@@ -31,5 +39,30 @@ public class JwtProvider {
 			.expiration(Date.from(now.plus(ttl)))
 			.signWith(key)
 			.compact();
+	}
+
+	public Long getUserId(String token) {
+		return Long.parseLong(getClaims(token).getSubject());
+	}
+
+	public boolean validate(String token) {
+		try {
+			getClaims(token);
+			return true;
+		} catch (JwtException | IllegalArgumentException e) {
+			return false;
+		}
+	}
+
+	public long getExpiresIn() {
+		return properties.accessTokenExpiration().toSeconds();
+	}
+
+	private Claims getClaims(String token) {
+		return Jwts.parser()
+			.verifyWith(key)
+			.build()
+			.parseSignedClaims(token)
+			.getPayload();
 	}
 }

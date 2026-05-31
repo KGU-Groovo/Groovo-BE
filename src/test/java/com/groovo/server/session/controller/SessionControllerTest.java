@@ -9,10 +9,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.groovo.server.common.jwt.JwtProvider;
 import com.groovo.server.session.domain.Session;
 import com.groovo.server.session.domain.SessionStatus;
 import com.groovo.server.session.repository.SessionRedisStore;
 import com.groovo.server.session.repository.SessionRepository;
+import com.groovo.server.user.domain.User;
+import com.groovo.server.user.repository.UserRepository;
 import com.groovo.server.video.domain.Video;
 import com.groovo.server.video.repository.VideoRepository;
 import java.time.Duration;
@@ -39,6 +42,12 @@ class SessionControllerTest {
 	private MockMvc mockMvc;
 
 	@Autowired
+	private JwtProvider jwtProvider;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
 	private VideoRepository videoRepository;
 
 	@Autowired
@@ -48,11 +57,21 @@ class SessionControllerTest {
 	private SessionRedisStore sessionRedisStore;
 
 	private Long videoId;
+	private Long userId;
+	private String accessToken;
 
 	@BeforeEach
 	void setUp() {
 		sessionRepository.deleteAll();
 		videoRepository.deleteAll();
+		userRepository.deleteAll();
+		User user = userRepository.save(User.builder()
+			.email("session-controller@test.com")
+			.password("encoded-password")
+			.nickname("session-controller")
+			.build());
+		userId = user.getId();
+		accessToken = jwtProvider.generateToken(userId);
 		Video video = videoRepository.save(Video.builder()
 			.title("K-POP 기초 안무 1")
 			.videoUrl("https://cdn.groovo.io/video/1/index.m3u8")
@@ -68,7 +87,7 @@ class SessionControllerTest {
 	@SuppressWarnings("unchecked")
 	void createSession_returns201WithWsToken() throws Exception {
 		mockMvc.perform(post("/v1/sessions")
-				.header("X-User-Id", "101")
+				.header("Authorization", bearerToken())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"video_id\": " + videoId + "}"))
 			.andExpect(status().isCreated())
@@ -81,7 +100,7 @@ class SessionControllerTest {
 		List<Session> sessions = sessionRepository.findAll();
 		assertThat(sessions).hasSize(1);
 		Session session = sessions.get(0);
-		assertThat(session.getUserId()).isEqualTo(101L);
+		assertThat(session.getUser().getId()).isEqualTo(userId);
 		assertThat(session.getVideo().getId()).isEqualTo(videoId);
 		assertThat(session.getStatus()).isEqualTo(SessionStatus.ACTIVE);
 		assertThat(session.getStartedAt()).isNotNull();
@@ -92,7 +111,7 @@ class SessionControllerTest {
 		verify(sessionRedisStore).save(sessionIdCaptor.capture(), fieldsCaptor.capture(), eq(Duration.ofMinutes(30)));
 		assertThat(sessionIdCaptor.getValue()).isEqualTo(session.getId());
 		assertThat(fieldsCaptor.getValue())
-			.containsEntry("user_id", "101")
+			.containsEntry("user_id", String.valueOf(userId))
 			.containsEntry("video_id", String.valueOf(videoId))
 			.containsEntry("keypoint_path", KEYPOINT_PATH)
 			.containsEntry("fps", "30.0")
@@ -103,7 +122,7 @@ class SessionControllerTest {
 	}
 
 	@Test
-	void createSession_returns401_whenUserIdHeaderMissing() throws Exception {
+	void createSession_returns401_whenAuthorizationHeaderMissing() throws Exception {
 		mockMvc.perform(post("/v1/sessions")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"video_id\": " + videoId + "}"))
@@ -112,9 +131,9 @@ class SessionControllerTest {
 	}
 
 	@Test
-	void createSession_returns401_whenUserIdHeaderNotNumeric() throws Exception {
+	void createSession_returns401_whenTokenInvalid() throws Exception {
 		mockMvc.perform(post("/v1/sessions")
-				.header("X-User-Id", "abc")
+				.header("Authorization", "Bearer invalid-token")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"video_id\": " + videoId + "}"))
 			.andExpect(status().isUnauthorized())
@@ -124,27 +143,27 @@ class SessionControllerTest {
 	@Test
 	void createSession_returns400_whenVideoIdMissing() throws Exception {
 		mockMvc.perform(post("/v1/sessions")
-				.header("X-User-Id", "101")
+				.header("Authorization", bearerToken())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{}"))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"));
+			.andExpect(jsonPath("$.code").value("BAD_REQUEST"));
 	}
 
 	@Test
 	void createSession_returns400_whenVideoIdHasWrongType() throws Exception {
 		mockMvc.perform(post("/v1/sessions")
-				.header("X-User-Id", "101")
+				.header("Authorization", bearerToken())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"video_id\": \"abc\"}"))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"));
+			.andExpect(jsonPath("$.code").value("BAD_REQUEST"));
 	}
 
 	@Test
 	void createSession_returns404_whenVideoMissing() throws Exception {
 		mockMvc.perform(post("/v1/sessions")
-				.header("X-User-Id", "101")
+				.header("Authorization", bearerToken())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"video_id\": 999999}"))
 			.andExpect(status().isNotFound())
@@ -163,7 +182,7 @@ class SessionControllerTest {
 			.build());
 
 		mockMvc.perform(post("/v1/sessions")
-				.header("X-User-Id", "101")
+				.header("Authorization", bearerToken())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"video_id\": " + video.getId() + "}"))
 			.andExpect(status().isInternalServerError())
@@ -171,5 +190,9 @@ class SessionControllerTest {
 
 		assertThat(sessionRepository.findAll()).isEmpty();
 		verify(sessionRedisStore, never()).save(any(), any(), any());
+	}
+
+	private String bearerToken() {
+		return "Bearer " + accessToken;
 	}
 }
