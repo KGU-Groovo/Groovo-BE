@@ -147,21 +147,34 @@ GitHub Actions는 `main`, `dev` 브랜치 push와 PR에서 CI를 실행합니다
 ./gradlew clean build
 ```
 
-`dev` 브랜치에 push되면 CI 성공 후 EC2 개발 서버로 배포합니다. 현재 dev 배포는 GitHub Secrets에 등록된 SSH 정보로 EC2에 접속한 뒤, EC2에서 GitHub repository를 clone 또는 pull 하고 Docker Compose로 컨테이너를 재기동합니다.
+`dev` 브랜치에 push되면 CI 성공 후 EC2 개발 서버로 배포합니다. 현재 dev 배포는 EC2에 설치한 GitHub Actions self-hosted runner에서 실행되며, GitHub-hosted runner가 EC2로 SSH 접속하지 않습니다.
 
-필수 GitHub Secrets:
+dev 배포 runner label:
 
-| Secret        | Description                    |
-| ------------- | ------------------------------ |
-| `EC2_HOST`    | EC2 public host 또는 public IP |
-| `EC2_USER`    | EC2 SSH user                   |
-| `EC2_SSH_KEY` | EC2 접속용 private key         |
+```text
+self-hosted
+linux
+groovo-dev
+```
+
+GitHub에서 runner 등록:
+
+```text
+Repository Settings
+-> Actions
+-> Runners
+-> New self-hosted runner
+-> Linux
+```
+
+GitHub 화면에 표시되는 명령을 EC2에서 실행합니다. label 입력 단계에서는 `groovo-dev`를 추가합니다. runner는 서비스로 등록해 재부팅 후에도 자동 실행되도록 설정합니다.
 
 EC2 사전 준비:
 
 - Docker와 Docker Compose가 설치되어 있어야 합니다.
 - Git이 설치되어 있어야 합니다.
-- EC2의 SSH key가 GitHub repository에 접근할 수 있어야 합니다. private repository라면 deploy key 또는 machine user key를 등록합니다.
+- EC2 user가 Docker를 실행할 수 있어야 합니다.
+- self-hosted runner를 실행하는 EC2 user의 SSH key가 GitHub repository에 접근할 수 있어야 합니다. private repository라면 deploy key 또는 machine user key를 등록합니다.
 - 배포 디렉터리는 기본 `~/groovo/backend`입니다.
 - 환경변수 파일은 repo 밖의 `~/groovo/env/backend.dev.env`에 둡니다. GitHub Actions는 배포 시 `~/groovo/backend/.env`를 이 파일의 symlink로 연결합니다.
 
@@ -169,7 +182,7 @@ EC2 dev 환경변수 파일 예시:
 
 ```bash
 mkdir -p ~/groovo/env
-cp ~/groovo/backend/.env.example ~/groovo/env/backend.dev.env
+# 최초 설정 시에는 repository의 .env.example 내용을 참고해 직접 생성합니다.
 vi ~/groovo/env/backend.dev.env
 ```
 
@@ -180,7 +193,7 @@ dev 배포 흐름:
 ```text
 push to dev
 -> ./gradlew clean build
--> SSH to EC2
+-> run deploy job on EC2 self-hosted runner
 -> git clone/fetch origin dev
 -> link ~/groovo/env/backend.dev.env to .env
 -> docker compose up --build -d
