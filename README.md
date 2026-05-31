@@ -88,9 +88,11 @@ Docker Compose는 프로젝트 루트의 `.env`를 자동으로 읽어 컨테이
 | `AWS_S3_BUCKET`                    | S3 bucket name          | empty            |
 | `AWS_S3_ENDPOINT`                  | S3-compatible endpoint  | empty            |
 | `AWS_S3_PATH_STYLE_ACCESS_ENABLED` | Path-style S3 access    | `false`          |
-| `AWS_S3_ACCESS_KEY`                | S3 access key           | empty            |
-| `AWS_S3_SECRET_KEY`                | S3 secret key           | empty            |
+| `AWS_S3_ACCESS_KEY`                | 로컬 개발용 S3 access key | empty            |
+| `AWS_S3_SECRET_KEY`                | 로컬 개발용 S3 secret key | empty            |
 | `AWS_S3_PRESIGNED_URL_EXPIRATION`  | Presigned URL 만료 시간 | `5m`             |
+
+EC2에서는 인스턴스에 연결된 IAM Role을 통해 S3에 접근하므로 `AWS_S3_ACCESS_KEY`, `AWS_S3_SECRET_KEY`를 설정하지 않습니다. 로컬 개발 환경에서 AWS credential chain을 사용할 수 없을 때만 두 값을 `.env`에 설정합니다.
 
 실제 비밀번호와 AWS 키는 `.env.example`에 넣지 않습니다. `.env`는 Git에 커밋하지 않습니다.
 
@@ -137,7 +139,54 @@ Docker Compose는 프로젝트 루트의 `.env`를 자동으로 읽어 컨테이
 ./gradlew bootRun
 ```
 
-## 6. Directory Structure
+## 6. CI/CD
+
+GitHub Actions는 `main`, `dev` 브랜치 push와 PR에서 CI를 실행합니다.
+
+```bash
+./gradlew clean build
+```
+
+`dev` 브랜치에 push되면 CI 성공 후 EC2 개발 서버로 배포합니다. 현재 dev 배포는 GitHub Secrets에 등록된 SSH 정보로 EC2에 접속한 뒤, EC2에서 GitHub repository를 clone 또는 pull 하고 Docker Compose로 컨테이너를 재기동합니다.
+
+필수 GitHub Secrets:
+
+| Secret        | Description                    |
+| ------------- | ------------------------------ |
+| `EC2_HOST`    | EC2 public host 또는 public IP |
+| `EC2_USER`    | EC2 SSH user                   |
+| `EC2_SSH_KEY` | EC2 접속용 private key         |
+
+EC2 사전 준비:
+
+- Docker와 Docker Compose가 설치되어 있어야 합니다.
+- Git이 설치되어 있어야 합니다.
+- EC2의 SSH key가 GitHub repository에 접근할 수 있어야 합니다. private repository라면 deploy key 또는 machine user key를 등록합니다.
+- 배포 디렉터리는 기본 `~/groovo/backend`입니다.
+- 환경변수 파일은 repo 밖의 `~/groovo/env/backend.dev.env`에 둡니다. GitHub Actions는 배포 시 `~/groovo/backend/.env`를 이 파일의 symlink로 연결합니다.
+
+EC2 dev 환경변수 파일 예시:
+
+```bash
+mkdir -p ~/groovo/env
+cp ~/groovo/backend/.env.example ~/groovo/env/backend.dev.env
+vi ~/groovo/env/backend.dev.env
+```
+
+추후 prod 배포를 추가할 때는 `~/groovo/env/backend.prod.env`처럼 환경별 파일을 분리합니다.
+
+dev 배포 흐름:
+
+```text
+push to dev
+-> ./gradlew clean build
+-> SSH to EC2
+-> git clone/fetch origin dev
+-> link ~/groovo/env/backend.dev.env to .env
+-> docker compose up --build -d
+```
+
+## 7. Directory Structure
 
 이 프로젝트는 도메인형 구조를 기본으로 합니다. 새 기능은 `controller`, `service`, `repository`, `domain`, `dto`를 도메인 패키지 아래에 모읍니다.
 
@@ -183,7 +232,7 @@ video
 - `infra`: Redis, S3처럼 외부 인프라 연동 코드를 둡니다.
 - `config`: Spring Bean, Security, JPA 등 설정 코드를 둡니다.
 
-## 7. API Rules
+## 8. API Rules
 
 ### Prefix
 
@@ -227,7 +276,7 @@ DELETE /api/videos/{videoId}
 
 생성 API에서 `201 Created`가 필요하면 `@ResponseStatus(HttpStatus.CREATED)` 또는 `ResponseEntity.status(HttpStatus.CREATED)`를 사용합니다.
 
-## 8. Common Implementations
+## 9. Common Implementations
 
 ### Response Wrapper
 
@@ -308,7 +357,7 @@ objectUrl(String key)
 
 `RedisTemplate<String, String>`은 문자열 직렬화로 설정되어 있습니다. `RedisQueuePublisher`, `RedisQueueConsumer`는 Redis list를 이용한 간단한 queue publish/consume 기능을 제공합니다.
 
-## 9. Git Workflow
+## 10. Git Workflow
 
 ### Branch Rules
 
@@ -355,7 +404,7 @@ git commit -m "docs: 로컬 실행 방법 추가"
 ./gradlew test
 ```
 
-## 10. Development Notes
+## 11. Development Notes
 
 - 새 도메인은 `com.groovo.server.{domain}` 아래에 도메인형 구조로 추가합니다.
 - 공통 응답 포맷이 적용되므로 컨트롤러에서는 일반 DTO를 반환하는 것을 기본으로 합니다.

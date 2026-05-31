@@ -33,3 +33,76 @@ jobs:
 
       - name: Build and test
         run: ./gradlew clean build
+
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DEPLOY_BRANCH: dev
+      REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Configure SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "$EC2_SSH_KEY" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy with Docker Compose
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/ec2_key "$EC2_USER@$EC2_HOST" \
+            "DEPLOY_BRANCH='$DEPLOY_BRANCH' REPOSITORY='$REPOSITORY' bash -s" << 'EOF'
+            set -euo pipefail
+            DEPLOY_DIR="$HOME/groovo/backend"
+            ENV_FILE="$HOME/groovo/env/backend.dev.env"
+            DEPLOY_PARENT="$(dirname "$DEPLOY_DIR")"
+            REPO_URL="git@github.com:$REPOSITORY.git"
+
+            mkdir -p "$DEPLOY_PARENT"
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+            if [ -d "$DEPLOY_DIR/.git" ]; then
+              cd "$DEPLOY_DIR"
+              git fetch origin "$DEPLOY_BRANCH"
+              git checkout "$DEPLOY_BRANCH"
+              git reset --hard "origin/$DEPLOY_BRANCH"
+            elif [ -e "$DEPLOY_DIR" ]; then
+              echo "$DEPLOY_DIR exists but is not a git repository." >&2
+              exit 1
+            else
+              git clone --branch "$DEPLOY_BRANCH" "$REPO_URL" "$DEPLOY_DIR"
+              cd "$DEPLOY_DIR"
+            fi
+
+            cd "$DEPLOY_DIR"
+
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "$ENV_FILE is required." >&2
+              exit 1
+            fi
+            ln -sfn "$ENV_FILE" "$DEPLOY_DIR/.env"
+
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE="docker-compose"
+            else
+              echo "Docker Compose is not installed." >&2
+              exit 1
+            fi
+
+            $COMPOSE up --build -d
+            docker image prune -f
+            $COMPOSE ps
+          EOF
