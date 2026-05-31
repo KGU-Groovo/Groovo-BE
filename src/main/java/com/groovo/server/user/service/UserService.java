@@ -14,11 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserService {
 
-	private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-	public UserProfileResponse getUserProfile(Long userId) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-		return UserProfileResponse.from(user);
-	}
+  public UserProfileResponse getUserProfile(Long userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    return UserProfileResponse.from(user);
+  }
 }

@@ -6,13 +6,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisQueuePublisher {
 
-	private final RedisTemplate<String, String> redisTemplate;
+  private final RedisTemplate<String, String> redisTemplate;
 
-	public RedisQueuePublisher(RedisTemplate<String, String> redisTemplate) {
-		this.redisTemplate = redisTemplate;
-	}
+  public RedisQueuePublisher(RedisTemplate<String, String> redisTemplate) {
+    this.redisTemplate = redisTemplate;
+  }
 
-	public void publish(String queueName, String payload) {
-		redisTemplate.opsForList().leftPush(queueName, payload);
-	}
+  public void publish(String queueName, String payload) {
+    redisTemplate.opsForList().leftPush(queueName, payload);
+  }
 }

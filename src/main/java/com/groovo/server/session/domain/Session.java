@@ -22,33 +22,32 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Session {
-	@Id
-	private String id;
+  @Id private String id;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false)
-	private User user;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "video_id", nullable = false)
-	private Video video;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "video_id", nullable = false)
+  private Video video;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private SessionStatus status;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private SessionStatus status;
 
-	@Column(name = "started_at", nullable = false)
-	private Instant startedAt;
+  @Column(name = "started_at", nullable = false)
+  private Instant startedAt;
 
-	@Column(name = "finished_at")
-	private Instant finishedAt;
+  @Column(name = "finished_at")
+  private Instant finishedAt;
 
-	@Builder
-	private Session(String id, User user, Video video, SessionStatus status, Instant startedAt) {
-		this.id = id;
-		this.user = user;
-		this.video = video;
-		this.status = status;
-		this.startedAt = startedAt;
-	}
+  @Builder
+  private Session(String id, User user, Video video, SessionStatus status, Instant startedAt) {
+    this.id = id;
+    this.user = user;
+    this.video = video;
+    this.status = status;
+    this.startedAt = startedAt;
+  }
 }

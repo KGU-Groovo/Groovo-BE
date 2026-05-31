@@ -18,17 +18,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class VideoService {
 
-	private final VideoRepository videoRepository;
+  private final VideoRepository videoRepository;
 
-	public VideoListResponse getVideos(Pageable pageable) {
-		Page<VideoSummaryResponse> page = videoRepository.findAll(pageable)
-			.map(VideoSummaryResponse::from);
-		return VideoListResponse.from(page);
-	}
+  public VideoListResponse getVideos(Pageable pageable) {
+    Page<VideoSummaryResponse> page =
+        videoRepository.findAll(pageable).map(VideoSummaryResponse::from);
+    return VideoListResponse.from(page);
+  }
 
-	public VideoDetailResponse getVideo(Long videoId) {
-		Video video = videoRepository.findById(videoId)
-			.orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
-		return VideoDetailResponse.from(video);
-	}
+  public VideoDetailResponse getVideo(Long videoId) {
+    Video video =
+        videoRepository
+            .findById(videoId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
+    return VideoDetailResponse.from(video);
+  }
 }

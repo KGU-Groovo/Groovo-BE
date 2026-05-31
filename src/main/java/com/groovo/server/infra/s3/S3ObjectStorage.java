@@ -18,90 +18,75 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 @Component
 public class S3ObjectStorage {
 
-	private final S3Client s3Client;
-	private final S3Presigner s3Presigner;
-	private final S3Properties properties;
+  private final S3Client s3Client;
+  private final S3Presigner s3Presigner;
+  private final S3Properties properties;
 
-	public S3ObjectStorage(S3Client s3Client, S3Presigner s3Presigner, S3Properties properties) {
-		this.s3Client = s3Client;
-		this.s3Presigner = s3Presigner;
-		this.properties = properties;
-	}
+  public S3ObjectStorage(S3Client s3Client, S3Presigner s3Presigner, S3Properties properties) {
+    this.s3Client = s3Client;
+    this.s3Presigner = s3Presigner;
+    this.properties = properties;
+  }
 
-	public S3PresignedUrl createUploadPresignedUrl(String key, String contentType) {
-		PutObjectRequest.Builder objectRequestBuilder = PutObjectRequest.builder()
-			.bucket(bucket())
-			.key(key);
-		if (StringUtils.hasText(contentType)) {
-			objectRequestBuilder.contentType(contentType);
-		}
+  public S3PresignedUrl createUploadPresignedUrl(String key, String contentType) {
+    PutObjectRequest.Builder objectRequestBuilder =
+        PutObjectRequest.builder().bucket(bucket()).key(key);
+    if (StringUtils.hasText(contentType)) {
+      objectRequestBuilder.contentType(contentType);
+    }
 
-		PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(
-			PutObjectPresignRequest.builder()
-				.signatureDuration(properties.presignedUrlExpiration())
-				.putObjectRequest(objectRequestBuilder.build())
-				.build()
-		);
-		return new S3PresignedUrl(
-			key,
-			presignedRequest.url().toExternalForm(),
-			presignedRequest.expiration(),
-			presignedRequest.signedHeaders()
-		);
-	}
+    PresignedPutObjectRequest presignedRequest =
+        s3Presigner.presignPutObject(
+            PutObjectPresignRequest.builder()
+                .signatureDuration(properties.presignedUrlExpiration())
+                .putObjectRequest(objectRequestBuilder.build())
+                .build());
+    return new S3PresignedUrl(
+        key,
+        presignedRequest.url().toExternalForm(),
+        presignedRequest.expiration(),
+        presignedRequest.signedHeaders());
+  }
 
-	public S3PresignedUrl createDownloadPresignedUrl(String key) {
-		PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(
-			GetObjectPresignRequest.builder()
-				.signatureDuration(properties.presignedUrlExpiration())
-				.getObjectRequest(GetObjectRequest.builder()
-					.bucket(bucket())
-					.key(key)
-					.build())
-				.build()
-		);
-		return new S3PresignedUrl(
-			key,
-			presignedRequest.url().toExternalForm(),
-			presignedRequest.expiration(),
-			presignedRequest.signedHeaders()
-		);
-	}
+  public S3PresignedUrl createDownloadPresignedUrl(String key) {
+    PresignedGetObjectRequest presignedRequest =
+        s3Presigner.presignGetObject(
+            GetObjectPresignRequest.builder()
+                .signatureDuration(properties.presignedUrlExpiration())
+                .getObjectRequest(GetObjectRequest.builder().bucket(bucket()).key(key).build())
+                .build());
+    return new S3PresignedUrl(
+        key,
+        presignedRequest.url().toExternalForm(),
+        presignedRequest.expiration(),
+        presignedRequest.signedHeaders());
+  }
 
-	public void upload(String key, InputStream inputStream, long contentLength, String contentType) {
-		PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
-			.bucket(bucket())
-			.key(key);
-		if (StringUtils.hasText(contentType)) {
-			requestBuilder.contentType(contentType);
-		}
+  public void upload(String key, InputStream inputStream, long contentLength, String contentType) {
+    PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder().bucket(bucket()).key(key);
+    if (StringUtils.hasText(contentType)) {
+      requestBuilder.contentType(contentType);
+    }
 
-		s3Client.putObject(
-			requestBuilder.build(),
-			RequestBody.fromInputStream(inputStream, contentLength)
-		);
-	}
+    s3Client.putObject(
+        requestBuilder.build(), RequestBody.fromInputStream(inputStream, contentLength));
+  }
 
-	public void delete(String key) {
-		s3Client.deleteObject(DeleteObjectRequest.builder()
-			.bucket(bucket())
-			.key(key)
-			.build());
-	}
+  public void delete(String key) {
+    s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket()).key(key).build());
+  }
 
-	public String objectUrl(String key) {
-		return s3Client.utilities()
-			.getUrl(GetUrlRequest.builder()
-				.bucket(bucket())
-				.key(key)
-				.build())
-			.toExternalForm();
-	}
+  public String objectUrl(String key) {
+    return s3Client
+        .utilities()
+        .getUrl(GetUrlRequest.builder().bucket(bucket()).key(key).build())
+        .toExternalForm();
+  }
 
-	private String bucket() {
-		if (!StringUtils.hasText(properties.bucket())) {
-			throw new IllegalStateException("AWS S3 bucket is not configured.");
-		}
-		return properties.bucket();
-	}
+  private String bucket() {
+    if (!StringUtils.hasText(properties.bucket())) {
+      throw new IllegalStateException("AWS S3 bucket is not configured.");
+    }
+    return properties.bucket();
+  }
 }

@@ -21,66 +21,67 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class UserControllerTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-	@Autowired
-	private JwtProvider jwtProvider;
+  @Autowired private JwtProvider jwtProvider;
 
-	@Autowired
-	private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-	private Long userId;
-	private String accessToken;
+  private Long userId;
+  private String accessToken;
 
-	@BeforeEach
-	void setUp() {
-		userRepository.deleteAll();
-		User user = userRepository.save(User.builder()
-			.email("dancer@example.com")
-			.nickname("댄서A")
-			.profileImageUrl("https://cdn.groovo.io/profile/1.jpg")
-			.provider(Provider.KAKAO)
-			.providerId("kakao-1")
-			.build());
-		userId = user.getId();
-		accessToken = jwtProvider.generateToken(userId);
-	}
+  @BeforeEach
+  void setUp() {
+    userRepository.deleteAll();
+    User user =
+        userRepository.save(
+            User.builder()
+                .email("dancer@example.com")
+                .nickname("댄서A")
+                .profileImageUrl("https://cdn.groovo.io/profile/1.jpg")
+                .provider(Provider.KAKAO)
+                .providerId("kakao-1")
+                .build());
+    userId = user.getId();
+    accessToken = jwtProvider.generateToken(userId);
+  }
 
-	@Test
-	void getUserProfile_returnsPublicFieldsOnly() throws Exception {
-		mockMvc.perform(get("/v1/users/{userId}", userId)
-				.header("Authorization", bearerToken()))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.success").value(true))
-			.andExpect(jsonPath("$.data.user_id").value(userId))
-			.andExpect(jsonPath("$.data.nickname").value("댄서A"))
-			.andExpect(jsonPath("$.data.profile_image_url").value("https://cdn.groovo.io/profile/1.jpg"))
-			.andExpect(jsonPath("$.data.email").doesNotExist())
-			.andExpect(jsonPath("$.data.provider").doesNotExist())
-			.andExpect(jsonPath("$.data.provider_id").doesNotExist())
-			.andExpect(jsonPath("$.data.role").doesNotExist())
-			.andExpect(jsonPath("$.data.status").doesNotExist())
-			.andExpect(jsonPath("$.data.created_at").doesNotExist());
-	}
+  @Test
+  void getUserProfile_returnsPublicFieldsOnly() throws Exception {
+    mockMvc
+        .perform(get("/v1/users/{userId}", userId).header("Authorization", bearerToken()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.user_id").value(userId))
+        .andExpect(jsonPath("$.data.nickname").value("댄서A"))
+        .andExpect(
+            jsonPath("$.data.profile_image_url").value("https://cdn.groovo.io/profile/1.jpg"))
+        .andExpect(jsonPath("$.data.email").doesNotExist())
+        .andExpect(jsonPath("$.data.provider").doesNotExist())
+        .andExpect(jsonPath("$.data.provider_id").doesNotExist())
+        .andExpect(jsonPath("$.data.role").doesNotExist())
+        .andExpect(jsonPath("$.data.status").doesNotExist())
+        .andExpect(jsonPath("$.data.created_at").doesNotExist());
+  }
 
-	@Test
-	void getUserProfile_returns404_whenMissing() throws Exception {
-		mockMvc.perform(get("/v1/users/{userId}", 999999)
-				.header("Authorization", bearerToken()))
-			.andExpect(status().isNotFound())
-			.andExpect(jsonPath("$.success").value(false))
-			.andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
-	}
+  @Test
+  void getUserProfile_returns404_whenMissing() throws Exception {
+    mockMvc
+        .perform(get("/v1/users/{userId}", 999999).header("Authorization", bearerToken()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.success").value(false))
+        .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+  }
 
-	@Test
-	void getUserProfile_returns401_whenAuthorizationHeaderMissing() throws Exception {
-		mockMvc.perform(get("/v1/users/{userId}", userId))
-			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-	}
+  @Test
+  void getUserProfile_returns401_whenAuthorizationHeaderMissing() throws Exception {
+    mockMvc
+        .perform(get("/v1/users/{userId}", userId))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+  }
 
-	private String bearerToken() {
-		return "Bearer " + accessToken;
-	}
+  private String bearerToken() {
+    return "Bearer " + accessToken;
+  }
 }

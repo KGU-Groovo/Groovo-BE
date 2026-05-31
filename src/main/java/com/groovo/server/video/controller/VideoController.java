@@ -17,19 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/videos")
 public class VideoController {
 
-	private final VideoService videoService;
+  private final VideoService videoService;
 
-	@GetMapping
-	public VideoListResponse getVideos(
-		@RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "20") int size
-	) {
-		Pageable pageable = PageRequest.of(page, size);
-		return videoService.getVideos(pageable);
-	}
+  @GetMapping
+  public VideoListResponse getVideos(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    Pageable pageable = PageRequest.of(page, size);
+    return videoService.getVideos(pageable);
+  }
 
-	@GetMapping("/{videoId}")
-	public VideoDetailResponse getVideo(@PathVariable Long videoId) {
-		return videoService.getVideo(videoId);
-	}
+  @GetMapping("/{videoId}")
+  public VideoDetailResponse getVideo(@PathVariable Long videoId) {
+    return videoService.getVideo(videoId);
+  }
 }

@@ -2,10 +2,15 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.6'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.diffplug.spotless' version '8.5.1'
 }
 
 group = 'com.groovo'
 version = '0.0.1-SNAPSHOT'
+
+bootJar {
+	archiveFileName = 'backend-1.0.0.jar'
+}
 
 java {
 	toolchain {
@@ -18,25 +23,40 @@ repositories {
 }
 
 dependencies {
-	implementation platform('software.amazon.awssdk:bom:2.44.12')
+	// Spring Boot core
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+
+	// Persistence, cache, and messaging
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// Security and authentication
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+
+	// API documentation
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+
+	// AWS
+	implementation platform('software.amazon.awssdk:bom:2.44.12')
 	implementation 'software.amazon.awssdk:s3'
+
+	// Annotation processing
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	compileOnly 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.6'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	// Development
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testCompileOnly 'org.projectlombok:lombok'
@@ -47,4 +67,28 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+spotless {
+	java {
+		target 'src/**/*.java'
+		googleJavaFormat()
+		importOrder()
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+
+	groovyGradle {
+		target '*.gradle'
+		greclipse()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+
+	format 'misc', {
+		target '*.md', '*.yml', '*.yaml', '.gitignore', '.env.example'
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
 }

@@ -5,9 +5,4 @@ import java.util.List;
 import java.util.Map;
 
 public record S3PresignedUrl(
-	String key,
-	String url,
-	Instant expiresAt,
-	Map<String, List<String>> signedHeaders
-) {
-}
+    String key, String url, Instant expiresAt, Map<String, List<String>> signedHeaders) {}

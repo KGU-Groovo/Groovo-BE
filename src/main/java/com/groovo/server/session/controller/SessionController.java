@@ -17,14 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/v1/sessions")
 public class SessionController {
-	private final SessionService sessionService;
+  private final SessionService sessionService;
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public SessionCreateResponse create(
-		@AuthenticationPrincipal Long userId,
-		@Valid @RequestBody SessionCreateRequest request
-	) {
-		return sessionService.create(userId, request.videoId());
-	}
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public SessionCreateResponse create(
+      @AuthenticationPrincipal Long userId, @Valid @RequestBody SessionCreateRequest request) {
+    return sessionService.create(userId, request.videoId());
+  }
 }

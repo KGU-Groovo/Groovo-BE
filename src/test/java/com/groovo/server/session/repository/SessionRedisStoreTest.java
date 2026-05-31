@@ -15,24 +15,21 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class SessionRedisStoreTest {
-	@Mock
-	private RedisTemplate<String, String> redisTemplate;
+  @Mock private RedisTemplate<String, String> redisTemplate;
 
-	@Mock
-	private HashOperations<String, String, String> hashOperations;
+  @Mock private HashOperations<String, String, String> hashOperations;
 
-	@InjectMocks
-	private SessionRedisStore sessionRedisStore;
+  @InjectMocks private SessionRedisStore sessionRedisStore;
 
-	@Test
-	void save_writesHashAndSetsTtl() {
-		when(redisTemplate.<String, String>opsForHash()).thenReturn(hashOperations);
-		Map<String, String> fields = Map.of("status", "active", "user_id", "101");
-		Duration ttl = Duration.ofMinutes(30);
+  @Test
+  void save_writesHashAndSetsTtl() {
+    when(redisTemplate.<String, String>opsForHash()).thenReturn(hashOperations);
+    Map<String, String> fields = Map.of("status", "active", "user_id", "101");
+    Duration ttl = Duration.ofMinutes(30);
 
-		sessionRedisStore.save("sid-1", fields, ttl);
+    sessionRedisStore.save("sid-1", fields, ttl);
 
-		verify(hashOperations).putAll("session:sid-1", fields);
-		verify(redisTemplate).expire("session:sid-1", ttl);
-	}
+    verify(hashOperations).putAll("session:sid-1", fields);
+    verify(redisTemplate).expire("session:sid-1", ttl);
+  }
 }

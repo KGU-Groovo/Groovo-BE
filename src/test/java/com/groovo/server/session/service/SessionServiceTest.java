@@ -35,173 +35,176 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
-	private static final String SECRET = "test-secret-key-for-jwt-signing-0123456789";
+  private static final String SECRET = "test-secret-key-for-jwt-signing-0123456789";
 
-	@Mock
-	private UserRepository userRepository;
+  @Mock private UserRepository userRepository;
 
-	@Mock
-	private VideoRepository videoRepository;
+  @Mock private VideoRepository videoRepository;
 
-	@Mock
-	private SessionRepository sessionRepository;
+  @Mock private SessionRepository sessionRepository;
 
-	@Mock
-	private SessionRedisStore sessionRedisStore;
+  @Mock private SessionRedisStore sessionRedisStore;
 
-	@Mock
-	private JwtProvider jwtProvider;
+  @Mock private JwtProvider jwtProvider;
 
-	private SessionService sessionService;
+  private SessionService sessionService;
 
-	@BeforeEach
-	void setUp() {
-		sessionService = new SessionService(
-			userRepository,
-			videoRepository,
-			sessionRepository,
-			sessionRedisStore,
-			jwtProvider,
-			new JwtProperties(SECRET, Duration.ofMinutes(30), Duration.ofMinutes(30)),
-			new SessionProperties("wss://ai.test/ws/analyze")
-		);
-	}
+  @BeforeEach
+  void setUp() {
+    sessionService =
+        new SessionService(
+            userRepository,
+            videoRepository,
+            sessionRepository,
+            sessionRedisStore,
+            jwtProvider,
+            new JwtProperties(SECRET, Duration.ofMinutes(30), Duration.ofMinutes(30)),
+            new SessionProperties("wss://ai.test/ws/analyze"));
+  }
 
-	@Test
-	void create_throwsVideoNotFound_whenVideoMissing() {
-		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
-		when(videoRepository.findById(999L)).thenReturn(Optional.empty());
+  @Test
+  void create_throwsVideoNotFound_whenVideoMissing() {
+    when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
+    when(videoRepository.findById(999L)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> sessionService.create(101L, 999L))
-			.isInstanceOfSatisfying(BusinessException.class, exception ->
-				assertThat(exception.errorCode()).isEqualTo(ErrorCode.VIDEO_NOT_FOUND));
-	}
+    assertThatThrownBy(() -> sessionService.create(101L, 999L))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception -> assertThat(exception.errorCode()).isEqualTo(ErrorCode.VIDEO_NOT_FOUND));
+  }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void create_savesSessionAndRedis_andReturnsResponse() {
-		User user = user(101L);
-		Video video = Video.builder()
-			.title("Video 1")
-			.description("description")
-			.videoUrl("https://cdn.test/video_1.mp4")
-			.keypointPath("keypoints/video_1.npy")
-			.fps(30.0)
-			.durationMs(120_000)
-			.thumbnailUrl("https://cdn.test/video_1.jpg")
-			.build();
-		ReflectionTestUtils.setField(video, "id", 42L);
-		when(userRepository.findById(101L)).thenReturn(Optional.of(user));
-		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
-		when(jwtProvider.create(any(String.class), any(Map.class), eq(Duration.ofMinutes(30))))
-			.thenReturn("ws-token-value");
+  @Test
+  @SuppressWarnings("unchecked")
+  void create_savesSessionAndRedis_andReturnsResponse() {
+    User user = user(101L);
+    Video video =
+        Video.builder()
+            .title("Video 1")
+            .description("description")
+            .videoUrl("https://cdn.test/video_1.mp4")
+            .keypointPath("keypoints/video_1.npy")
+            .fps(30.0)
+            .durationMs(120_000)
+            .thumbnailUrl("https://cdn.test/video_1.jpg")
+            .build();
+    ReflectionTestUtils.setField(video, "id", 42L);
+    when(userRepository.findById(101L)).thenReturn(Optional.of(user));
+    when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+    when(jwtProvider.create(any(String.class), any(Map.class), eq(Duration.ofMinutes(30))))
+        .thenReturn("ws-token-value");
 
-		SessionCreateResponse response = sessionService.create(101L, 42L);
+    SessionCreateResponse response = sessionService.create(101L, 42L);
 
-		assertThat(response.sessionId()).isNotBlank();
-		assertThat(response.wsToken()).isEqualTo("ws-token-value");
-		assertThat(response.wsUrl()).isEqualTo("wss://ai.test/ws/analyze");
-		assertThat(response.expiresIn()).isEqualTo(1800);
+    assertThat(response.sessionId()).isNotBlank();
+    assertThat(response.wsToken()).isEqualTo("ws-token-value");
+    assertThat(response.wsUrl()).isEqualTo("wss://ai.test/ws/analyze");
+    assertThat(response.expiresIn()).isEqualTo(1800);
 
-		ArgumentCaptor<Session> sessionCaptor = ArgumentCaptor.forClass(Session.class);
-		verify(sessionRepository).save(sessionCaptor.capture());
-		Session savedSession = sessionCaptor.getValue();
-		assertThat(savedSession.getId()).isEqualTo(response.sessionId());
-		assertThat(savedSession.getUser()).isSameAs(user);
-		assertThat(savedSession.getVideo()).isSameAs(video);
-		assertThat(savedSession.getStatus()).isEqualTo(SessionStatus.ACTIVE);
-		assertThat(savedSession.getStartedAt()).isNotNull();
+    ArgumentCaptor<Session> sessionCaptor = ArgumentCaptor.forClass(Session.class);
+    verify(sessionRepository).save(sessionCaptor.capture());
+    Session savedSession = sessionCaptor.getValue();
+    assertThat(savedSession.getId()).isEqualTo(response.sessionId());
+    assertThat(savedSession.getUser()).isSameAs(user);
+    assertThat(savedSession.getVideo()).isSameAs(video);
+    assertThat(savedSession.getStatus()).isEqualTo(SessionStatus.ACTIVE);
+    assertThat(savedSession.getStartedAt()).isNotNull();
 
-		ArgumentCaptor<Map<String, String>> fieldsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(sessionRedisStore).save(eq(response.sessionId()), fieldsCaptor.capture(), eq(Duration.ofMinutes(30)));
-		assertThat(fieldsCaptor.getValue())
-			.containsEntry("user_id", "101")
-			.containsEntry("video_id", "42")
-			.containsEntry("keypoint_path", "keypoints/video_1.npy")
-			.containsEntry("fps", "30.0")
-			.containsEntry("status", "active");
-		assertThat(fieldsCaptor.getValue().get("started_at"))
-			.isNotBlank()
-			.containsOnlyDigits();
+    ArgumentCaptor<Map<String, String>> fieldsCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(sessionRedisStore)
+        .save(eq(response.sessionId()), fieldsCaptor.capture(), eq(Duration.ofMinutes(30)));
+    assertThat(fieldsCaptor.getValue())
+        .containsEntry("user_id", "101")
+        .containsEntry("video_id", "42")
+        .containsEntry("keypoint_path", "keypoints/video_1.npy")
+        .containsEntry("fps", "30.0")
+        .containsEntry("status", "active");
+    assertThat(fieldsCaptor.getValue().get("started_at")).isNotBlank().containsOnlyDigits();
 
-		ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<Map<String, Object>> claimsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(jwtProvider).create(subjectCaptor.capture(), claimsCaptor.capture(), eq(Duration.ofMinutes(30)));
-		assertThat(subjectCaptor.getValue()).isEqualTo(response.sessionId());
-		assertThat(claimsCaptor.getValue())
-			.containsEntry("userId", 101L)
-			.containsEntry("videoId", 42L);
-	}
+    ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<Map<String, Object>> claimsCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(jwtProvider)
+        .create(subjectCaptor.capture(), claimsCaptor.capture(), eq(Duration.ofMinutes(30)));
+    assertThat(subjectCaptor.getValue()).isEqualTo(response.sessionId());
+    assertThat(claimsCaptor.getValue()).containsEntry("userId", 101L).containsEntry("videoId", 42L);
+  }
 
-	@Test
-	void create_throwsInternalServerError_whenVideoKeypointPathMissing() {
-		Video video = videoWithAnalysisMetadata(null, 30.0);
-		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
-		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+  @Test
+  void create_throwsInternalServerError_whenVideoKeypointPathMissing() {
+    Video video = videoWithAnalysisMetadata(null, 30.0);
+    when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
+    when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
-		assertThatThrownBy(() -> sessionService.create(101L, 42L))
-			.isInstanceOfSatisfying(BusinessException.class, exception ->
-				assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
-			.hasMessageContaining("keypointPath");
+    assertThatThrownBy(() -> sessionService.create(101L, 42L))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
+        .hasMessageContaining("keypointPath");
 
-		verify(jwtProvider, never()).create(any(), any(), any());
-		verify(sessionRepository, never()).save(any());
-		verify(sessionRedisStore, never()).save(any(), any(), any());
-	}
+    verify(jwtProvider, never()).create(any(), any(), any());
+    verify(sessionRepository, never()).save(any());
+    verify(sessionRedisStore, never()).save(any(), any(), any());
+  }
 
-	@Test
-	void create_throwsInternalServerError_whenVideoKeypointPathBlank() {
-		Video video = videoWithAnalysisMetadata(" ", 30.0);
-		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
-		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+  @Test
+  void create_throwsInternalServerError_whenVideoKeypointPathBlank() {
+    Video video = videoWithAnalysisMetadata(" ", 30.0);
+    when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
+    when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
-		assertThatThrownBy(() -> sessionService.create(101L, 42L))
-			.isInstanceOfSatisfying(BusinessException.class, exception ->
-				assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
-			.hasMessageContaining("keypointPath");
+    assertThatThrownBy(() -> sessionService.create(101L, 42L))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
+        .hasMessageContaining("keypointPath");
 
-		verify(jwtProvider, never()).create(any(), any(), any());
-		verify(sessionRepository, never()).save(any());
-		verify(sessionRedisStore, never()).save(any(), any(), any());
-	}
+    verify(jwtProvider, never()).create(any(), any(), any());
+    verify(sessionRepository, never()).save(any());
+    verify(sessionRedisStore, never()).save(any(), any(), any());
+  }
 
-	@Test
-	void create_throwsInternalServerError_whenVideoFpsMissing() {
-		Video video = videoWithAnalysisMetadata("keypoints/video_1.npy", null);
-		when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
-		when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
+  @Test
+  void create_throwsInternalServerError_whenVideoFpsMissing() {
+    Video video = videoWithAnalysisMetadata("keypoints/video_1.npy", null);
+    when(userRepository.findById(101L)).thenReturn(Optional.of(user(101L)));
+    when(videoRepository.findById(42L)).thenReturn(Optional.of(video));
 
-		assertThatThrownBy(() -> sessionService.create(101L, 42L))
-			.isInstanceOfSatisfying(BusinessException.class, exception ->
-				assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
-			.hasMessageContaining("fps");
+    assertThatThrownBy(() -> sessionService.create(101L, 42L))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.errorCode()).isEqualTo(ErrorCode.INTERNAL_SERVER_ERROR))
+        .hasMessageContaining("fps");
 
-		verify(jwtProvider, never()).create(any(), any(), any());
-		verify(sessionRepository, never()).save(any());
-		verify(sessionRedisStore, never()).save(any(), any(), any());
-	}
+    verify(jwtProvider, never()).create(any(), any(), any());
+    verify(sessionRepository, never()).save(any());
+    verify(sessionRedisStore, never()).save(any(), any(), any());
+  }
 
-	private Video videoWithAnalysisMetadata(String keypointPath, Double fps) {
-		Video video = Video.builder()
-			.title("Video 1")
-			.description("description")
-			.videoUrl("https://cdn.test/video_1.mp4")
-			.keypointPath(keypointPath)
-			.fps(fps)
-			.durationMs(120_000)
-			.thumbnailUrl("https://cdn.test/video_1.jpg")
-			.build();
-		ReflectionTestUtils.setField(video, "id", 42L);
-		return video;
-	}
+  private Video videoWithAnalysisMetadata(String keypointPath, Double fps) {
+    Video video =
+        Video.builder()
+            .title("Video 1")
+            .description("description")
+            .videoUrl("https://cdn.test/video_1.mp4")
+            .keypointPath(keypointPath)
+            .fps(fps)
+            .durationMs(120_000)
+            .thumbnailUrl("https://cdn.test/video_1.jpg")
+            .build();
+    ReflectionTestUtils.setField(video, "id", 42L);
+    return video;
+  }
 
-	private User user(Long id) {
-		User user = User.builder()
-			.email("user" + id + "@test.com")
-			.password("encoded-password")
-			.nickname("user" + id)
-			.build();
-		ReflectionTestUtils.setField(user, "id", id);
-		return user;
-	}
+  private User user(Long id) {
+    User user =
+        User.builder()
+            .email("user" + id + "@test.com")
+            .password("encoded-password")
+            .nickname("user" + id)
+            .build();
+    ReflectionTestUtils.setField(user, "id", id);
+    return user;
+  }
 }

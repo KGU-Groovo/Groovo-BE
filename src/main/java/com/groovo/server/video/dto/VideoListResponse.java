@@ -7,20 +7,14 @@ import tools.jackson.databind.annotation.JsonNaming;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record VideoListResponse(
-	List<VideoSummaryResponse> videos,
-	int page,
-	int size,
-	long totalElements,
-	int totalPages
-) {
+    List<VideoSummaryResponse> videos, int page, int size, long totalElements, int totalPages) {
 
-	public static VideoListResponse from(Page<VideoSummaryResponse> page) {
-		return new VideoListResponse(
-			page.getContent(),
-			page.getNumber(),
-			page.getSize(),
-			page.getTotalElements(),
-			page.getTotalPages()
-		);
-	}
+  public static VideoListResponse from(Page<VideoSummaryResponse> page) {
+    return new VideoListResponse(
+        page.getContent(),
+        page.getNumber(),
+        page.getSize(),
+        page.getTotalElements(),
+        page.getTotalPages());
+  }
 }

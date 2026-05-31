@@ -7,13 +7,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisQueueConsumer {
 
-	private final RedisTemplate<String, String> redisTemplate;
+  private final RedisTemplate<String, String> redisTemplate;
 
-	public RedisQueueConsumer(RedisTemplate<String, String> redisTemplate) {
-		this.redisTemplate = redisTemplate;
-	}
+  public RedisQueueConsumer(RedisTemplate<String, String> redisTemplate) {
+    this.redisTemplate = redisTemplate;
+  }
 
-	public String consume(String queueName, Duration timeout) {
-		return redisTemplate.opsForList().rightPop(queueName, timeout);
-	}
+  public String consume(String queueName, Duration timeout) {
+    return redisTemplate.opsForList().rightPop(queueName, timeout);
+  }
 }

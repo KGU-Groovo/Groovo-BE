@@ -113,6 +113,18 @@ Docker Compose는 프로젝트 루트의 `.env`를 자동으로 읽어 컨테이
 ./gradlew test
 ```
 
+코드 포맷 검사:
+
+```bash
+./gradlew spotlessCheck
+```
+
+코드 포맷 자동 적용:
+
+```bash
+./gradlew spotlessApply
+```
+
 빌드:
 
 ```bash
@@ -336,10 +348,17 @@ git commit -m "fix: 요청 body 로깅 시 빈 본문 처리"
 git commit -m "docs: 로컬 실행 방법 추가"
 ```
 
+커밋 전에는 Spotless 포맷 검사와 테스트를 통과시켜야 합니다.
+
+```bash
+./gradlew spotlessCheck
+./gradlew test
+```
+
 ## 10. Development Notes
 
 - 새 도메인은 `com.groovo.server.{domain}` 아래에 도메인형 구조로 추가합니다.
 - 공통 응답 포맷이 적용되므로 컨트롤러에서는 일반 DTO를 반환하는 것을 기본으로 합니다.
 - 비밀값은 `.env`, CI/CD Secret, 서버 환경변수로 관리합니다.
 - 운영 profile에서는 `JPA_DDL_AUTO=validate`를 기본으로 사용합니다.
-- 기능 작업 전 `dev`를 최신화하고, 작업 후 `./gradlew test`를 실행합니다.
+- 기능 작업 전 `dev`를 최신화하고, 작업 후 `./gradlew spotlessCheck`와 `./gradlew test`를 실행합니다.

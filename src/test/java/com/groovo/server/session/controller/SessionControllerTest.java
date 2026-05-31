@@ -36,163 +36,176 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class SessionControllerTest {
-	private static final String KEYPOINT_PATH = "keypoints/video_1.npy";
+  private static final String KEYPOINT_PATH = "keypoints/video_1.npy";
 
-	@Autowired
-	private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-	@Autowired
-	private JwtProvider jwtProvider;
+  @Autowired private JwtProvider jwtProvider;
 
-	@Autowired
-	private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-	@Autowired
-	private VideoRepository videoRepository;
+  @Autowired private VideoRepository videoRepository;
 
-	@Autowired
-	private SessionRepository sessionRepository;
+  @Autowired private SessionRepository sessionRepository;
 
-	@MockitoBean
-	private SessionRedisStore sessionRedisStore;
+  @MockitoBean private SessionRedisStore sessionRedisStore;
 
-	private Long videoId;
-	private Long userId;
-	private String accessToken;
+  private Long videoId;
+  private Long userId;
+  private String accessToken;
 
-	@BeforeEach
-	void setUp() {
-		sessionRepository.deleteAll();
-		videoRepository.deleteAll();
-		userRepository.deleteAll();
-		User user = userRepository.save(User.builder()
-			.email("session-controller@test.com")
-			.password("encoded-password")
-			.nickname("session-controller")
-			.build());
-		userId = user.getId();
-		accessToken = jwtProvider.generateToken(userId);
-		Video video = videoRepository.save(Video.builder()
-			.title("K-POP 기초 안무 1")
-			.videoUrl("https://cdn.groovo.io/video/1/index.m3u8")
-			.keypointPath(KEYPOINT_PATH)
-			.fps(30.0)
-			.durationMs(180000)
-			.thumbnailUrl("https://cdn.groovo.io/thumb/1.jpg")
-			.build());
-		videoId = video.getId();
-	}
+  @BeforeEach
+  void setUp() {
+    sessionRepository.deleteAll();
+    videoRepository.deleteAll();
+    userRepository.deleteAll();
+    User user =
+        userRepository.save(
+            User.builder()
+                .email("session-controller@test.com")
+                .password("encoded-password")
+                .nickname("session-controller")
+                .build());
+    userId = user.getId();
+    accessToken = jwtProvider.generateToken(userId);
+    Video video =
+        videoRepository.save(
+            Video.builder()
+                .title("K-POP 기초 안무 1")
+                .videoUrl("https://cdn.groovo.io/video/1/index.m3u8")
+                .keypointPath(KEYPOINT_PATH)
+                .fps(30.0)
+                .durationMs(180000)
+                .thumbnailUrl("https://cdn.groovo.io/thumb/1.jpg")
+                .build());
+    videoId = video.getId();
+  }
 
-	@Test
-	@SuppressWarnings("unchecked")
-	void createSession_returns201WithWsToken() throws Exception {
-		mockMvc.perform(post("/v1/sessions")
-				.header("Authorization", bearerToken())
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"video_id\": " + videoId + "}"))
-			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.success").value(true))
-			.andExpect(jsonPath("$.data.session_id").exists())
-			.andExpect(jsonPath("$.data.ws_token").exists())
-			.andExpect(jsonPath("$.data.ws_url").value("wss://test.groovo.io/ws/analyze"))
-			.andExpect(jsonPath("$.data.expires_in").value(1800));
+  @Test
+  @SuppressWarnings("unchecked")
+  void createSession_returns201WithWsToken() throws Exception {
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .header("Authorization", bearerToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"video_id\": " + videoId + "}"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.session_id").exists())
+        .andExpect(jsonPath("$.data.ws_token").exists())
+        .andExpect(jsonPath("$.data.ws_url").value("wss://test.groovo.io/ws/analyze"))
+        .andExpect(jsonPath("$.data.expires_in").value(1800));
 
-		List<Session> sessions = sessionRepository.findAll();
-		assertThat(sessions).hasSize(1);
-		Session session = sessions.get(0);
-		assertThat(session.getUser().getId()).isEqualTo(userId);
-		assertThat(session.getVideo().getId()).isEqualTo(videoId);
-		assertThat(session.getStatus()).isEqualTo(SessionStatus.ACTIVE);
-		assertThat(session.getStartedAt()).isNotNull();
-		assertThat(session.getFinishedAt()).isNull();
+    List<Session> sessions = sessionRepository.findAll();
+    assertThat(sessions).hasSize(1);
+    Session session = sessions.get(0);
+    assertThat(session.getUser().getId()).isEqualTo(userId);
+    assertThat(session.getVideo().getId()).isEqualTo(videoId);
+    assertThat(session.getStatus()).isEqualTo(SessionStatus.ACTIVE);
+    assertThat(session.getStartedAt()).isNotNull();
+    assertThat(session.getFinishedAt()).isNull();
 
-		ArgumentCaptor<String> sessionIdCaptor = ArgumentCaptor.forClass(String.class);
-		ArgumentCaptor<Map<String, String>> fieldsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(sessionRedisStore).save(sessionIdCaptor.capture(), fieldsCaptor.capture(), eq(Duration.ofMinutes(30)));
-		assertThat(sessionIdCaptor.getValue()).isEqualTo(session.getId());
-		assertThat(fieldsCaptor.getValue())
-			.containsEntry("user_id", String.valueOf(userId))
-			.containsEntry("video_id", String.valueOf(videoId))
-			.containsEntry("keypoint_path", KEYPOINT_PATH)
-			.containsEntry("fps", "30.0")
-			.containsEntry("status", "active");
-		assertThat(fieldsCaptor.getValue().get("started_at"))
-			.isNotBlank()
-			.containsOnlyDigits();
-	}
+    ArgumentCaptor<String> sessionIdCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<Map<String, String>> fieldsCaptor = ArgumentCaptor.forClass(Map.class);
+    verify(sessionRedisStore)
+        .save(sessionIdCaptor.capture(), fieldsCaptor.capture(), eq(Duration.ofMinutes(30)));
+    assertThat(sessionIdCaptor.getValue()).isEqualTo(session.getId());
+    assertThat(fieldsCaptor.getValue())
+        .containsEntry("user_id", String.valueOf(userId))
+        .containsEntry("video_id", String.valueOf(videoId))
+        .containsEntry("keypoint_path", KEYPOINT_PATH)
+        .containsEntry("fps", "30.0")
+        .containsEntry("status", "active");
+    assertThat(fieldsCaptor.getValue().get("started_at")).isNotBlank().containsOnlyDigits();
+  }
 
-	@Test
-	void createSession_returns401_whenAuthorizationHeaderMissing() throws Exception {
-		mockMvc.perform(post("/v1/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"video_id\": " + videoId + "}"))
-			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-	}
+  @Test
+  void createSession_returns401_whenAuthorizationHeaderMissing() throws Exception {
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"video_id\": " + videoId + "}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+  }
 
-	@Test
-	void createSession_returns401_whenTokenInvalid() throws Exception {
-		mockMvc.perform(post("/v1/sessions")
-				.header("Authorization", "Bearer invalid-token")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"video_id\": " + videoId + "}"))
-			.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-	}
+  @Test
+  void createSession_returns401_whenTokenInvalid() throws Exception {
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .header("Authorization", "Bearer invalid-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"video_id\": " + videoId + "}"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+  }
 
-	@Test
-	void createSession_returns400_whenVideoIdMissing() throws Exception {
-		mockMvc.perform(post("/v1/sessions")
-				.header("Authorization", bearerToken())
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{}"))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("BAD_REQUEST"));
-	}
+  @Test
+  void createSession_returns400_whenVideoIdMissing() throws Exception {
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .header("Authorization", bearerToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+  }
 
-	@Test
-	void createSession_returns400_whenVideoIdHasWrongType() throws Exception {
-		mockMvc.perform(post("/v1/sessions")
-				.header("Authorization", bearerToken())
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"video_id\": \"abc\"}"))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("BAD_REQUEST"));
-	}
+  @Test
+  void createSession_returns400_whenVideoIdHasWrongType() throws Exception {
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .header("Authorization", bearerToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"video_id\": \"abc\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+  }
 
-	@Test
-	void createSession_returns404_whenVideoMissing() throws Exception {
-		mockMvc.perform(post("/v1/sessions")
-				.header("Authorization", bearerToken())
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"video_id\": 999999}"))
-			.andExpect(status().isNotFound())
-			.andExpect(jsonPath("$.code").value("VIDEO_NOT_FOUND"));
-	}
+  @Test
+  void createSession_returns404_whenVideoMissing() throws Exception {
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .header("Authorization", bearerToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"video_id\": 999999}"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("VIDEO_NOT_FOUND"));
+  }
 
-	@Test
-	void createSession_returns500_whenVideoKeypointPathMissing() throws Exception {
-		Video video = videoRepository.save(Video.builder()
-			.title("Incomplete analysis video")
-			.videoUrl("https://cdn.groovo.io/video/incomplete/index.m3u8")
-			.keypointPath(null)
-			.fps(30.0)
-			.durationMs(180000)
-			.thumbnailUrl("https://cdn.groovo.io/thumb/incomplete.jpg")
-			.build());
+  @Test
+  void createSession_returns500_whenVideoKeypointPathMissing() throws Exception {
+    Video video =
+        videoRepository.save(
+            Video.builder()
+                .title("Incomplete analysis video")
+                .videoUrl("https://cdn.groovo.io/video/incomplete/index.m3u8")
+                .keypointPath(null)
+                .fps(30.0)
+                .durationMs(180000)
+                .thumbnailUrl("https://cdn.groovo.io/thumb/incomplete.jpg")
+                .build());
 
-		mockMvc.perform(post("/v1/sessions")
-				.header("Authorization", bearerToken())
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"video_id\": " + video.getId() + "}"))
-			.andExpect(status().isInternalServerError())
-			.andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"));
+    mockMvc
+        .perform(
+            post("/v1/sessions")
+                .header("Authorization", bearerToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"video_id\": " + video.getId() + "}"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"));
 
-		assertThat(sessionRepository.findAll()).isEmpty();
-		verify(sessionRedisStore, never()).save(any(), any(), any());
-	}
+    assertThat(sessionRepository.findAll()).isEmpty();
+    verify(sessionRedisStore, never()).save(any(), any(), any());
+  }
 
-	private String bearerToken() {
-		return "Bearer " + accessToken;
-	}
+  private String bearerToken() {
+    return "Bearer " + accessToken;
+  }
 }
